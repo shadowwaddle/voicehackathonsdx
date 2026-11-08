@@ -12,6 +12,7 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- shadowwaddle: A3 done: `components/WatercolorCanvas.tsx` with props `scene`, `volume`. The speaker blob is matched by `scene.speaker` against `scene.characters[].name`, ignoring case, and up to 4 characters are shown. Lane B: send `palette` as hex strings.
 - shadowwaddle: A2 done: `/parents` with PIN gate, age slider, genre chips, time limit (5/10/15/20/30), sound toggle, change PIN (enter twice) and clear saved stories.
 - shadowwaddle: A1 done: app shell, Home, `hooks/useParentSettings.ts` (defaults: age 6, all genres, 15 min, sound on, PIN 1234), `hooks/useSavedStories.ts`, `lib/genres.ts`. Added `qrcode.react` to package.json. `app/story/page.tsx` is broken until A4 replaces it.
 - shadowwaddle: **Switched to the Lane A/B plan.** Rewrote `types/contract.ts` with `Scene`, `StorybookRequest`, `StorybookResult`, `SavedStory`, `TranscriptLine`, `VoiceAgent`, `StartOptions`. All three agent tools are now client tools, not server tools. Removed my old server-tool route, store and `/storybook` page. `lib/daytona.ts` is still there for Lane B to rewrite or delete. Lane B: please build against these types, and log any change you make to them here.
