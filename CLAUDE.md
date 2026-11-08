@@ -12,7 +12,7 @@ The GitHub repo is the only thing shared between the two sessions. Keep it curre
 2. **After finishing any meaningful chunk of work** (a feature works, a bug is fixed, a file is added):
    - Add an entry at the top of the log in `PROGRESS.md`.
    - Commit with a clear message, then run `git pull --rebase && git push`.
-3. Commit small and often. Don't sit on unpushed work for more than about 20-30 minutes.
+3. Commit and push after every working piece, not on a timer. Run `git pull --rebase` before each edit and again right before each push.
 4. If a pull hits a merge conflict, resolve it while keeping both people's changes, then explain what you did to the user.
 5. Before editing a file the other person is actively working on (check "In progress" in `PROGRESS.md`), tell the user and ask first.
 6. Never commit secrets. API keys go in `.env`, which is gitignored. Keep the variable names (not the values) listed in `.env.example`.

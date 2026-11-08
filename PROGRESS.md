@@ -13,6 +13,7 @@
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
 - shadowwaddle: A4 done: `app/story/page.tsx` (watercolor background, speaker name, time ring, tap-to-start, listening/speaking indicator, captions toggle, end button, storybook modal with QR, saves the story) and `hooks/useVoiceAgent.mock.ts`. To go live, change the one import line in `app/story/page.tsx` to `@/hooks/useVoiceAgent`. **Not built yet:** the dev sandbox has no outbound internet (DNS fails, connections reset), so `npm install` hangs. This blocks Lane B too: storybook sandboxes can't install anything either.
+- sthavir007: Changed CLAUDE.md rule 3: commit and push after every working piece, `git pull --rebase` before each edit and right before each push
 - shadowwaddle: A3 done: `components/WatercolorCanvas.tsx` with props `scene`, `volume`. The speaker blob is matched by `scene.speaker` against `scene.characters[].name`, ignoring case, and up to 4 characters are shown. Lane B: send `palette` as hex strings.
 - shadowwaddle: A2 done: `/parents` with PIN gate, age slider, genre chips, time limit (5/10/15/20/30), sound toggle, change PIN (enter twice) and clear saved stories.
 - shadowwaddle: A1 done: app shell, Home, `hooks/useParentSettings.ts` (defaults: age 6, all genres, 15 min, sound on, PIN 1234), `hooks/useSavedStories.ts`, `lib/genres.ts`. Added `qrcode.react` to package.json. `app/story/page.tsx` is broken until A4 replaces it.
