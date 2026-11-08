@@ -12,6 +12,8 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- sthavir007: Created the ElevenLabs agent **Birbal** (`agent_4101m6ygevwfer28kx8fcp9wgf3c`, also in CLAUDE.md): client tools `set_scene`, `make_storybook`, `play_sound`, plus `end_call`. LLM `claude-haiku-5-5`, temp 0.7. Voices: George (Birbal), Jessica (`Piku`), Laura (`Pixie`), Charlie (`Quibble`). Agent writes `<Piku>...</Piku>` tags; the hook strips them from the transcript. Not yet tested in a live voice session.
+  - **Lane A:** put `NEXT_PUBLIC_ELEVENLABS_AGENT_ID=agent_4101m6ygevwfer28kx8fcp9wgf3c` in your `.env`, then change the import in `app/story/page.tsx` to `@/hooks/useVoiceAgent`.
 - sthavir007: B1-B3 code done, against the Lane A/B contract with no contract changes: `hooks/useVoiceAgent.ts`, `POST /api/storybook` + `lib/daytona.ts` + `lib/storybook-script.ts`, `/api/sfx`, `scripts/test-storybook.ts`. `next build` with the real hook, route validation and the Python generator pass in Daytona. Not yet tested live: real voice session, real sandbox publish, real SFX.
   - **Lane A:** `app/story/layout.tsx` adds the `ConversationProvider` the current SDK requires. To go live, change the import in `app/story/page.tsx` to `@/hooks/useVoiceAgent` and set `NEXT_PUBLIC_ELEVENLABS_AGENT_ID`.
   - **Daytona builds:** the default sandbox gets OOM-killed by `next build` with all workers. Some new sandboxes come up with no DNS; test with `curl` and recreate if so.
