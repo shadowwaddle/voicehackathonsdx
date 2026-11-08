@@ -8,13 +8,12 @@ import { Panel } from "./ui";
 type PinStep = null | "new" | "confirm";
 
 export function SettingsTab({
-  settings, save, storiesCount, onClearStories, onLoadDemo, onPinChanged,
+  settings, save, storiesCount, onClearStories, onPinChanged,
 }: {
   settings: ParentSettings;
   save: (patch: Partial<ParentSettings>) => void;
   storiesCount: number;
   onClearStories: () => void;
-  onLoadDemo: () => void;
   onPinChanged: () => void;
 }) {
   const [pinStep, setPinStep] = useState<PinStep>(null);
@@ -122,9 +121,6 @@ export function SettingsTab({
               Clear saved stories
             </button>
           )}
-          <button onClick={onLoadDemo} className="rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-muted ring-1 ring-black/10 hover:ring-black/20">
-            Load demo history
-          </button>
         </div>
       </Panel>
     </div>

@@ -1,4 +1,4 @@
-import type { Genre, SessionMetrics, SessionReport } from "@/types/contract";
+import type { SessionMetrics, SessionReport } from "@/types/contract";
 
 // Plain-English summaries. Wording is always positive or neutral, never shaming,
 // and never names the child (Birbal doesn't know or store their name).
@@ -52,33 +52,4 @@ export function insight(reports: SessionReport[]): string {
   if (m.wordsLearned > 0) return `Your child practiced ${m.wordsLearned} new words in another language in the last story.`;
   if (m.reasoningAnswers > 0) return `Your child explained their thinking ${m.reasoningAnswers} time${m.reasoningAnswers > 1 ? "s" : ""} in the last story.`;
   return "Another mystery solved together. Every story builds the habit of thinking out loud.";
-}
-
-/** 7 sample stories over two weeks with gradual improvement, for demos. Marked demo. */
-export function demoHistory(now = Date.now()): SessionReport[] {
-  const rows: [string, Genre, number, number, number, number, number, number, number][] = [
-    // title, genre, score, talkShare, avgWords, ideas, reasoning, questions, wordsLearned
-    ["The Missing Moon Cheese", "space", 41, 0.24, 3.8, 1, 0, 1, 0],
-    ["The Whispering Waterfall", "jungle", 46, 0.27, 4.6, 2, 1, 0, 0],
-    ["Who Took the Crown?", "fantasy", 50, 0.3, 5.1, 2, 1, 1, 3],
-    ["The Lost Lighthouse Key", "ocean", 55, 0.33, 5.9, 3, 2, 1, 3],
-    ["The Clockwork Robot's Riddle", "robots", 61, 0.36, 6.8, 3, 2, 2, 4],
-    ["The Secret of Dino Valley", "dinosaurs", 66, 0.39, 7.4, 4, 3, 2, 4],
-    ["The Case of the Silent Bell", "detective", 72, 0.42, 8.3, 5, 4, 3, 5],
-  ];
-  const daysAgo = [14, 12, 10, 8, 5, 3, 1];
-  return rows.map(([storyTitle, genre, thinkingScore, talkShare, avgAnswerWords, originalIdeas, reasoningAnswers, questionsAsked, wordsLearned], i) => {
-    const at = new Date(now - daysAgo[i] * 86400000 + i * 3600000).toISOString();
-    return {
-      id: `demo-${i}`,
-      createdAt: at,
-      storyTitle,
-      genre,
-      durationSeconds: 420 + i * 45,
-      thinkingScore,
-      metrics: { talkShare, avgAnswerWords, originalIdeas, reasoningAnswers, questionsAsked, puzzlesSolved: i < 2 ? 1 : 2, hintsUsed: Math.max(0, 3 - Math.floor(i / 2)), wordsLearned, childTurns: 9 + i * 2 },
-      deletion: { audio: "skipped", transcript: "skipped", sandbox: "failed", at },
-      demo: true,
-    };
-  });
 }

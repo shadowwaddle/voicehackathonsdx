@@ -4,7 +4,7 @@ import { GENRE_INFO } from "@/lib/genres";
 import { Panel, Stat, formatDate } from "./ui";
 import { insight } from "./insights";
 
-export function OverviewTab({ reports, onLoadDemo }: { reports: SessionReport[]; onLoadDemo?: () => void }) {
+export function OverviewTab({ reports }: { reports: SessionReport[] }) {
   const latest = reports[reports.length - 1];
   if (!latest) {
     return (
@@ -15,11 +15,6 @@ export function OverviewTab({ reports, onLoadDemo }: { reports: SessionReport[];
             After each story you&apos;ll see how your child thought out loud: their ideas, reasons and questions.
             We compare them only with their own past stories.
           </p>
-          {onLoadDemo && (
-            <button onClick={onLoadDemo} className="mt-6 rounded-xl bg-white px-4 py-2.5 text-sm font-medium ring-1 ring-black/10 hover:ring-black/20">
-              Load demo history
-            </button>
-          )}
         </div>
       </Panel>
     );

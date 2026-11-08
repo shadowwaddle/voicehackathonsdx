@@ -5,6 +5,8 @@ import type {
   StorybookResult, TranscriptLine, VoiceAgent,
 } from "@/types/contract";
 import { submitReport } from "@/lib/scoring/submit";
+import { pickOpening } from "@/lib/greetings";
+import { GENRE_INFO } from "@/lib/genres";
 import { useReports } from "@/hooks/useReports";
 
 // Fake voice agent for building the UI without ElevenLabs.
@@ -178,7 +180,7 @@ export function useVoiceAgent(): VoiceAgent {
           later(at, () => {
             setScene(step.scene);
             setStatus("speaking");
-            say("birbal", step.birbal);
+            say("birbal", i === 0 ? pickOpening(GENRE_INFO[genre]?.label ?? String(genre)) : step.birbal);
           });
           // One new word in each of the first four scenes.
           const w = words[i];

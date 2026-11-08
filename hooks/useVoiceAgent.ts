@@ -8,6 +8,8 @@ import {
 } from "@/types/contract";
 import { parseScene } from "@/lib/scene";
 import { submitReport } from "@/lib/scoring/submit";
+import { pickOpening } from "@/lib/greetings";
+import { GENRE_INFO } from "@/lib/genres";
 import { useReports } from "@/hooks/useReports";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
@@ -143,6 +145,7 @@ export function useVoiceAgent(): VoiceAgent {
         returning_characters: returningCharacters.join(",") || "none",
         learning_language: langName,
         learning_language_code: learningLanguage === "off" ? "none" : learningLanguage,
+        opening_line: pickOpening(GENRE_INFO[genre]?.label ?? String(genre)),
       },
       clientTools: {
         set_scene: (params) => {

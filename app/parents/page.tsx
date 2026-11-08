@@ -13,17 +13,15 @@ import { ProgressTab } from "@/components/dashboard/ProgressTab";
 import { StoriesTab } from "@/components/dashboard/StoriesTab";
 import { PrivacyTab } from "@/components/dashboard/PrivacyTab";
 import { SettingsTab } from "@/components/dashboard/SettingsTab";
-import { demoHistory } from "@/components/dashboard/insights";
 
 const TABS = ["Overview", "Progress", "Stories", "Privacy", "Settings"] as const;
 type Tab = (typeof TABS)[number];
-const MOCK = process.env.NEXT_PUBLIC_MOCK_AGENT === "1";
 
 export default function ParentsPage() {
   const router = useRouter();
   const { settings, update, ready } = useParentSettings();
   const { stories, clearStories } = useSavedStories();
-  const { reports, replaceAll } = useReports();
+  const { reports } = useReports();
   const [unlocked, setUnlocked] = useState(false);
   const [tab, setTab] = useState<Tab>("Overview");
   const [toast, setToast] = useState<string | null>(null);
@@ -41,12 +39,6 @@ export default function ParentsPage() {
   const save = (patch: Parameters<typeof update>[0]) => {
     update(patch);
     flash("Saved");
-  };
-  const loadDemo = () => {
-    const demo = demoHistory();
-    replaceAll([...sorted.filter((r) => !r.id.startsWith("demo-")), ...demo].sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
-    setTab("Overview");
-    flash("Demo history loaded");
   };
   const deleteEverything = () => {
     try {
@@ -90,7 +82,7 @@ export default function ParentsPage() {
               <p className="mt-1 text-muted">How your child thinks out loud, compared only with their own past stories.</p>
             </div>
             <Tabs tabs={TABS} value={tab} onChange={setTab} />
-            {tab === "Overview" && <OverviewTab reports={sorted} onLoadDemo={MOCK ? loadDemo : undefined} />}
+            {tab === "Overview" && <OverviewTab reports={sorted} />}
             {tab === "Progress" && <ProgressTab reports={sorted} />}
             {tab === "Stories" && <StoriesTab reports={sorted} />}
             {tab === "Privacy" && <PrivacyTab reports={sorted} onDeleteEverything={deleteEverything} />}
@@ -100,7 +92,6 @@ export default function ParentsPage() {
                 save={save}
                 storiesCount={stories.length}
                 onClearStories={() => { clearStories(); flash("Stories cleared"); }}
-                onLoadDemo={loadDemo}
                 onPinChanged={() => flash("PIN changed")}
               />
             )}
