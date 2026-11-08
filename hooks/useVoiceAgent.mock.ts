@@ -7,6 +7,9 @@ import type {
 import { submitReport } from "@/lib/scoring/submit";
 import { pickOpening } from "@/lib/greetings";
 import { GENRE_INFO } from "@/lib/genres";
+import { makeSpark } from "@/lib/birbal/spark";
+import { SESSION_SECONDS } from "@/lib/birbal/timeline";
+import { useSceneDirector } from "@/lib/birbal/useSceneDirector";
 import { useReports } from "@/hooks/useReports";
 
 // Fake voice agent for building the UI without ElevenLabs.
@@ -16,34 +19,21 @@ const PIP = { name: "Pip", color: "#f5a25d" };
 const LUNA = { name: "Luna", color: "#8fb8ea" };
 const MOSS = { name: "Moss", color: "#86c5a0" };
 
-type Step = { scene: Scene; birbal: string; child: string };
+type Step = { scene?: Scene; birbal: string; child: string };
 
+// Keywords here repaint the canvas; step 4 shows an agent set_scene outranking them.
 const SCRIPT: Step[] = [
-  {
-    scene: { location: "a sleepy village square", mood: "calm", palette: ["#f7d3b0", "#fae3a0", "#c6e3dc"], characters: [PIP], speaker: "Birbal" },
-    birbal: "Hello, my clever friend! Something very odd happened last night. Are you ready to help me?",
-    child: "Yes! What happened?",
-  },
-  {
-    scene: { location: "the bakery", mood: "silly", palette: ["#f2c2c8", "#f7d3b0", "#fae3a0"], characters: [PIP, LUNA], speaker: "Pip" },
-    birbal: "All the honey buns are gone! Not a single crumb left! What do you think happened?",
-    child: "Maybe someone ate them in the night?",
-  },
-  {
-    scene: { location: "a moonlit path", mood: "mysterious", palette: ["#6c6aa8", "#8fb8ea", "#c4b5e8", "#4f5d8a"], characters: [PIP, LUNA], speaker: "Luna" },
-    birbal: "Look, tiny sticky footprints! They go toward the old oak tree. Should we follow them?",
-    child: "Let's follow them!",
-  },
+  { birbal: "You step into a whispering forest, and the tall trees lean in close. Can you hear something?", child: "I hear a river!" },
+  { birbal: "Follow the river! Cold water rushes over the stones. What do you see on the bank?", child: "A map under the moon!" },
+  { birbal: "Night falls, and the moon and stars light the way. Where should we go?", child: "Into that dark cave!" },
+  { birbal: "The cave is quiet. Something whispers from the shadows. Do you hear it?", child: "Let's be brave!" },
   {
     scene: { location: "the old oak tree", mood: "exciting", palette: ["#86c5a0", "#fae3a0", "#f5a25d", "#c6e3dc"], characters: [PIP, LUNA, MOSS], speaker: "Moss" },
-    birbal: "It was me! I only wanted to share them at my birthday party. Can you help me say sorry?",
+    birbal: "It was me! I only wanted to share them at my party, far across the desert sand. Can you help me say sorry?",
     child: "You can bake new buns together!",
   },
-  {
-    scene: { location: "a birthday party", mood: "happy", palette: ["#fae3a0", "#f2c2c8", "#c6e3dc", "#d6cbf0"], characters: [PIP, LUNA, MOSS], speaker: "Birbal" },
-    birbal: "What a wonderful idea! Mystery solved. I'm making your storybook right now.",
-    child: "",
-  },
+  { birbal: "Snow begins to fall on the path home. What will you carry?", child: "The map!" },
+  { birbal: "Hooray! The mystery is solved and everyone is laughing. I'm making your storybook right now.", child: "" },
 ];
 
 type MockWord = Omit<LearnedWord, "language">;
@@ -88,7 +78,7 @@ export function useVoiceAgent(): VoiceAgent {
   const [status, setStatus] = useState<AgentStatus>("idle");
   const [volume, setVolume] = useState(0);
   const [transcript, setTranscript] = useState<TranscriptLine[]>([]);
-  const [scene, setScene] = useState<Scene | null>(null);
+  const director = useSceneDirector();
   const [elapsedSeconds, setElapsed] = useState(0);
   const [storybook, setStorybook] = useState<StorybookResult | null>(null);
   const [storybookLoading, setStorybookLoading] = useState(false);
@@ -142,6 +132,7 @@ export function useVoiceAgent(): VoiceAgent {
     const line: TranscriptLine = { id: crypto.randomUUID(), role, text };
     lines.current = [...lines.current, line];
     setTranscript((t) => [...t, line]);
+    director.fromLine(text);
   };
 
   const stop = useCallback(async () => {
@@ -152,13 +143,15 @@ export function useVoiceAgent(): VoiceAgent {
   }, [clearAll, finishSession]);
 
   const start = useCallback(
-    async ({ genre, settings, returningCharacters, learningLanguage = "off" }: StartOptions) => {
+    async ({ genre, settings, returningCharacters, learningLanguage = "off", recentTitles = [] }: StartOptions) => {
       clearAll();
       live.current = true;
       setTranscript([]);
       lines.current = [];
       session.current = { genre, startedAt: Date.now(), title: "", puzzles: 0, words: 0, reported: false };
       setStorybook(null);
+      const title = makeSpark(genre, recentTitles).title;
+      director.reset(GENRE_INFO[genre].label);
       setElapsed(0);
       setLearnedWords([]);
       setCurrentWord(null);
@@ -166,7 +159,7 @@ export function useVoiceAgent(): VoiceAgent {
       console.info("[mock agent] start", { genre, settings, returningCharacters, learningLanguage });
       const words = learningLanguage === "off" ? [] : MOCK_WORDS[learningLanguage];
 
-      const limit = settings.maxMinutes * 60;
+      const limit = SESSION_SECONDS;
       later(900, () => {
         let seconds = 0;
         tick.current = setInterval(() => {
@@ -178,9 +171,9 @@ export function useVoiceAgent(): VoiceAgent {
         let at = 0;
         SCRIPT.forEach((step, i) => {
           later(at, () => {
-            setScene(step.scene);
+            if (step.scene) director.fromAgent(step.scene);
             setStatus("speaking");
-            say("birbal", i === 0 ? pickOpening(GENRE_INFO[genre]?.label ?? String(genre)) : step.birbal);
+            say("birbal", i === 0 ? `${pickOpening(GENRE_INFO[genre].label, title)} ${step.birbal}` : step.birbal);
           });
           // One new word in each of the first four scenes.
           const w = words[i];
@@ -201,9 +194,9 @@ export function useVoiceAgent(): VoiceAgent {
             });
             later(at + 3000, () => {
               setStorybookLoading(false);
-              session.current.title = "The Case of the Missing Honey Buns";
+              session.current.title = title;
               session.current.puzzles = 1;
-              setStorybook({ url: "https://example.com/birbal-storybook", title: "The Case of the Missing Honey Buns" });
+              setStorybook({ url: "https://example.com/birbal-storybook", title });
               void stop();
             });
             return;
@@ -238,7 +231,7 @@ export function useVoiceAgent(): VoiceAgent {
   useEffect(() => clearAll, [clearAll]);
 
   return {
-    status, volume, transcript, scene, elapsedSeconds, storybook, storybookLoading, error,
+    status, volume, transcript, scene: director.scene, sceneDebug: director.debug, elapsedSeconds, storybook, storybookLoading, error,
     learnedWords, currentWord, start, stop,
   };
 }

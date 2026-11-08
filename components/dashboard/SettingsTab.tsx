@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
-import { GENRES, LEARNING_LANGUAGES, MAX_MINUTES_OPTIONS, type Genre, type LearningLanguage, type ParentSettings } from "@/types/contract";
+import { LEARNING_LANGUAGES, type Genre, type LearningLanguage, type ParentSettings } from "@/types/contract";
 import { GENRE_INFO } from "@/lib/genres";
+import { STORY_GENRES } from "@/lib/birbal/stories";
 import { PinPad } from "@/components/PinPad";
 import { Panel } from "./ui";
 
@@ -66,9 +67,9 @@ export function SettingsTab({
         <div className="mt-1 flex justify-between text-xs text-muted">{[4, 5, 6, 7, 8, 9, 10].map((a) => <span key={a}>{a}</span>)}</div>
       </Panel>
 
-      <Panel title="Allowed story worlds" detail={`${settings.allowedGenres.length} of ${GENRES.length}`}>
+      <Panel title="Allowed story worlds" detail={`${settings.allowedGenres.length} of ${STORY_GENRES.length}`}>
         <div className="flex flex-wrap gap-2">
-          {GENRES.map((g) => (
+          {STORY_GENRES.map((g) => (
             <button key={g} onClick={() => toggleGenre(g)} aria-pressed={settings.allowedGenres.includes(g)} className={chip(settings.allowedGenres.includes(g))}>
               {GENRE_INFO[g].label}
             </button>
@@ -82,17 +83,6 @@ export function SettingsTab({
             <button key={code} lang={code === "off" ? undefined : code} onClick={() => save({ learningLanguage: code })}
               aria-pressed={settings.learningLanguage === code} className={chip(settings.learningLanguage === code)}>
               {code === "off" ? "Off" : `${LEARNING_LANGUAGES[code].name} · ${LEARNING_LANGUAGES[code].native}`}
-            </button>
-          ))}
-        </div>
-      </Panel>
-
-      <Panel title="Story time limit" detail="Birbal wraps up a minute before">
-        <div className="grid grid-cols-5 gap-2">
-          {MAX_MINUTES_OPTIONS.map((m) => (
-            <button key={m} onClick={() => save({ maxMinutes: m })} aria-pressed={settings.maxMinutes === m}
-              className={`rounded-xl py-3 text-sm font-medium ring-1 transition ${settings.maxMinutes === m ? "bg-ink text-white ring-ink" : "bg-white ring-black/10 hover:ring-black/20"}`}>
-              {m} min
             </button>
           ))}
         </div>

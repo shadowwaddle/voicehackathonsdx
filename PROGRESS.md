@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle: Parent Dashboard done (D1-D3). The files are free again.
-- sthavir007: Improvements pass: prompt in code (`lib/birbal/`), 10 story cards, spark, story beats, 5-minute limit, keyword colors. Editing the voice hooks, `WatercolorCanvas`, `app/story`, `app/page`, `app/parents`, SettingsTab, GenreCard.
+- sthavir007: —
 
 ## To do (proposed tracks for the rest of the hackathon)
 **Track A, shadowwaddle (app + demo):**
@@ -24,6 +24,7 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- sthavir007: Improvements pass. Birbal's prompt and first message now live in `lib/birbal/prompt.ts` and are sent as session overrides (enabled on the agent). 10 story cards in `lib/birbal/stories.ts`; `GENRES` stays in the contract so old saved stories load. Random story spark, timed beat cues, 5-minute limit forced (setting removed), stop-phrase backup, keyword-driven colors with `?debug=1` overlay. Typecheck, `scripts/test-birbal.ts`, build and a full mock story pass.
 - sthavir007: Tested Language Adventure end to end. Live voice conversations (6 turns each, none + es/fr/zh/hi/ja) and a real-browser run on `29b624b` (22/22). All 5 languages teach words via `teach_word`, understand the child speaking that language, and the app sends the right `learning_language`. Median reply 1.2s, 25/36 turns under 1.5s; the first story reply is about 3s.
   - **Agent changes:** `reasoning_effort: low` (`none` made the model emit broken `<CHARACTER>` tags in voice mode), `turn_eagerness: patient`, `turn_timeout: 15`, one 1.2s "Hmm!" filler. Birbal is narrator only and the child is unnamed. No mid-sentence cut-offs in testing after this.
 - shadowwaddle: Birbal's opening now changes every story: `lib/greetings.ts` has 12 warm openings, picked at random and never the same twice in a row. Both hooks send it as the dynamic variable `opening_line`. Also removed "Load demo history" and the sample data from the dashboard.

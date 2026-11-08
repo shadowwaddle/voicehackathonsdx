@@ -100,6 +100,8 @@ export interface StartOptions {
   settings: ParentSettings;
   returningCharacters: string[]; // empty → "none"
   learningLanguage?: LearningLanguage; // defaults to "off"
+  recentTitles?: string[]; // last 5 stories, so the new one is clearly different
+  reviewWords?: LearnedWord[]; // words from earlier stories to bring back
 }
 
 /**
@@ -112,6 +114,12 @@ export interface StartOptions {
  * Client tools: set_scene(Scene), make_storybook(StorybookRequest), play_sound({ description }),
  * teach_word({ word, romanization?, translation, emoji }).
  */
+/** Where the current background came from, for the ?debug=1 overlay. */
+export interface SceneDebug {
+  source: "agent" | "keywords" | "none";
+  keyword: string | null;
+}
+
 export interface VoiceAgent {
   status: AgentStatus;
   volume: number; // 0-1, agent output level
@@ -123,6 +131,7 @@ export interface VoiceAgent {
   error: string | null;
   learnedWords: LearnedWord[];
   currentWord: LearnedWord | null; // set for ~6s after teach_word
+  sceneDebug: SceneDebug;
   start(opts: StartOptions): Promise<void>;
   stop(): Promise<void>;
 }

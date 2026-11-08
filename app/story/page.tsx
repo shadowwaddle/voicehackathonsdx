@@ -2,12 +2,15 @@
 import Link from "next/link";
 import { Suspense, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { GENRES, type Genre, type LearningLanguage } from "@/types/contract";
+import type { Genre, LearnedWord, LearningLanguage } from "@/types/contract";
 import { useVoiceAgent as useRealAgent } from "@/hooks/useVoiceAgent";
 import { useVoiceAgent as useMockAgent } from "@/hooks/useVoiceAgent.mock";
 import { useParentSettings } from "@/hooks/useParentSettings";
 import { useSavedStories } from "@/hooks/useSavedStories";
 import { GENRE_INFO } from "@/lib/genres";
+import { STORY_GENRES } from "@/lib/birbal/stories";
+import { SESSION_SECONDS } from "@/lib/birbal/timeline";
+import { DebugOverlay } from "./DebugOverlay";
 import { BirbalMark, BrushIcon, ListenIcon, MoonIcon } from "@/components/Icons";
 import { WatercolorCanvas } from "@/components/WatercolorCanvas";
 import { TimeRing } from "@/components/TimeRing";
@@ -27,11 +30,11 @@ function StoryScreen() {
   useEffect(() => {
     if (ready && !settings.consentAt) router.replace("/parents/welcome");
   }, [ready, settings.consentAt, router]);
-  const { addStory, getStory } = useSavedStories();
+  const { stories, addStory, getStory } = useSavedStories();
   const agent = useVoiceAgent();
 
   const asked = params.get("genre") as Genre;
-  const genre: Genre = GENRES.includes(asked) ? asked : settings.allowedGenres[0] ?? "fantasy";
+  const genre: Genre = STORY_GENRES.includes(asked) ? asked : settings.allowedGenres[0] ?? "fantasy";
   const continuing = getStory(params.get("continue") ?? "");
   const info = GENRE_INFO[genre];
   const lang: LearningLanguage = params.get("lang") === "off" ? "off" : settings.learningLanguage;
@@ -60,8 +63,14 @@ function StoryScreen() {
     });
   }, [agent.storybook, agent.learnedWords, addStory, genre, continuing, lang]);
 
-  const begin = () =>
-    agent.start({ genre, settings, returningCharacters: continuing?.characters ?? [], learningLanguage: lang });
+  const begin = () => {
+    const earlier = lang === "off" ? [] : stories.filter((s) => s.learningLanguage === lang).flatMap((s) => s.wordsLearned ?? []);
+    const reviewWords: LearnedWord[] = [...new Map(earlier.map((w) => [w.word, w])).values()].slice(0, 5);
+    agent.start({
+      genre, settings, returningCharacters: continuing?.characters ?? [], learningLanguage: lang,
+      recentTitles: stories.slice(0, 5).map((s) => s.title), reviewWords,
+    });
+  };
 
   const live = agent.status === "speaking" || agent.status === "listening";
   const speaker = agent.scene?.speaker || "Birbal";
@@ -69,6 +78,7 @@ function StoryScreen() {
   return (
     <main className="relative min-h-dvh overflow-hidden">
       <WatercolorCanvas scene={agent.scene} volume={agent.volume} />
+      {params.get("debug") === "1" && <DebugOverlay scene={agent.scene} debug={agent.sceneDebug} volume={agent.volume} />}
 
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-5xl flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
         {/* Top bar */}
@@ -89,7 +99,7 @@ function StoryScreen() {
             </span>
           )}
           {live || agent.status === "connecting" ? (
-            <TimeRing elapsed={agent.elapsedSeconds} totalSeconds={settings.maxMinutes * 60} />
+            <TimeRing elapsed={agent.elapsedSeconds} totalSeconds={SESSION_SECONDS} />
           ) : (
             <span className="w-14" />
           )}

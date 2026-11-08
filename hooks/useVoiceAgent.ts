@@ -3,13 +3,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
 import {
   LEARNING_LANGUAGES,
-  type AgentStatus, type Genre, type LearnedWord, type LearningLanguage, type Scene, type StartOptions,
+  type AgentStatus, type Genre, type LearnedWord, type LearningLanguage, type StartOptions,
   type StorybookResult, type TranscriptLine, type VoiceAgent,
 } from "@/types/contract";
 import { parseScene } from "@/lib/scene";
 import { submitReport } from "@/lib/scoring/submit";
-import { pickOpening } from "@/lib/greetings";
 import { GENRE_INFO } from "@/lib/genres";
+import { buildBirbalSession } from "@/lib/birbal/prompt";
+import { makeSpark } from "@/lib/birbal/spark";
+import { storyCard } from "@/lib/birbal/stories";
+import { SESSION_MINUTES, STOP_UPDATE, dueCues, shouldHardStop, wantsToStop } from "@/lib/birbal/timeline";
+import { useSceneDirector } from "@/lib/birbal/useSceneDirector";
 import { useReports } from "@/hooks/useReports";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
@@ -29,10 +33,9 @@ function parseWord(v: unknown, language: LearningLanguage): LearnedWord | null {
 
 export function useVoiceAgent(): VoiceAgent {
   const [transcript, setTranscript] = useState<TranscriptLine[]>([]);
-  const [scene, setScene] = useState<Scene | null>(null);
+  const director = useSceneDirector();
   const [volume, setVolume] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [maxSeconds, setMaxSeconds] = useState<number | null>(null);
   const [storybook, setStorybook] = useState<StorybookResult | null>(null);
   const [storybookLoading, setStorybookLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +43,8 @@ export function useVoiceAgent(): VoiceAgent {
   const [learnedWords, setLearnedWords] = useState<LearnedWord[]>([]);
   const [currentWord, setCurrentWord] = useState<LearnedWord | null>(null);
   const started = useRef(false);
-  const nudged = useRef(false);
+  const sentCues = useRef(new Set<string>());
+  const stopSent = useRef(false);
   const soundEffects = useRef(false);
   const language = useRef<LearningLanguage>("off");
   const learned = useRef<LearnedWord[]>([]); // mirrors learnedWords for tool handlers
@@ -93,6 +97,12 @@ export function useVoiceAgent(): VoiceAgent {
       const line: TranscriptLine = { id: crypto.randomUUID(), role, text };
       lines.current = [...lines.current, line];
       setTranscript((prev) => [...prev, line]);
+      director.fromLine(text);
+      // Backup for the prompt's stop rule.
+      if (role === "child" && !stopSent.current && wantsToStop(text)) {
+        stopSent.current = true;
+        live.current.sendContextualUpdate(STOP_UPDATE);
+      }
     },
   });
   // The hook returns a new object on most renders; effects read it through this ref.
@@ -106,18 +116,25 @@ export function useVoiceAgent(): VoiceAgent {
     await live.current.endSession();
   }, []);
 
-  const start = useCallback(async ({ genre, settings, returningCharacters, learningLanguage = "off" }: StartOptions) => {
+  const start = useCallback(async ({ genre, settings, returningCharacters, learningLanguage = "off", recentTitles = [], reviewWords = [] }: StartOptions) => {
     if (!AGENT_ID) return setError("NEXT_PUBLIC_ELEVENLABS_AGENT_ID is not set.");
     setError(null);
     setEnded(false);
     setTranscript([]);
     lines.current = [];
     conversationId.current = null;
-    session.current = { genre, startedAt: Date.now(), title: "", puzzles: 0, hints: 0 };
-    setScene(null);
+    const card = storyCard(genre);
+    const spark = makeSpark(genre, recentTitles);
+    const birbal = buildBirbalSession({
+      card, spark, childAge: settings.childAge, learningLanguage, reviewWords, recentTitles, returningCharacters,
+      allowedWorlds: settings.allowedGenres.map((g) => GENRE_INFO[g].label),
+    });
+    session.current = { genre, startedAt: Date.now(), title: spark.title, puzzles: 0, hints: 0 };
+    director.reset(`${GENRE_INFO[genre].label} ${card.theme}`);
     setStorybook(null);
     setElapsedSeconds(0);
-    nudged.current = false;
+    sentCues.current = new Set();
+    stopSent.current = false;
     soundEffects.current = settings.soundEffects;
     language.current = learningLanguage;
     learned.current = [];
@@ -132,26 +149,26 @@ export function useVoiceAgent(): VoiceAgent {
       return setError("We need the microphone so Birbal can hear you. Ask a grown-up to allow it.");
     }
     started.current = true;
-    setMaxSeconds(settings.maxMinutes * 60);
     // startSession returns void; connection failures arrive through onError.
     live.current.startSession({
       agentId: AGENT_ID,
       connectionType: "websocket",
+      overrides: { agent: { prompt: { prompt: birbal.prompt }, firstMessage: birbal.firstMessage } },
       dynamicVariables: {
         child_age: settings.childAge,
         genre,
         allowed_genres: settings.allowedGenres.join(","),
-        max_minutes: settings.maxMinutes,
+        max_minutes: SESSION_MINUTES,
         returning_characters: returningCharacters.join(",") || "none",
         learning_language: langName,
         learning_language_code: learningLanguage === "off" ? "none" : learningLanguage,
-        opening_line: pickOpening(GENRE_INFO[genre]?.label ?? String(genre)),
+        opening_line: birbal.firstMessage,
       },
       clientTools: {
         set_scene: (params) => {
           const next = parseScene(params);
           if (!next) return "invalid scene: location is required";
-          setScene(next);
+          director.fromAgent(next);
           return "ok";
         },
         make_storybook: async (params) => {
@@ -163,7 +180,7 @@ export function useVoiceAgent(): VoiceAgent {
             return language.current === "off" ? [] : [...have, ...more].slice(0, 12);
           };
           const p = (params ?? {}) as { title?: unknown; puzzles_solved?: unknown; hintsUsed?: unknown };
-          session.current.title = typeof p.title === "string" ? p.title : "";
+          if (typeof p.title === "string" && p.title) session.current.title = p.title;
           session.current.puzzles = Array.isArray(p.puzzles_solved) ? p.puzzles_solved.length : 0;
           session.current.hints = typeof p.hintsUsed === "number" ? p.hintsUsed : 0;
           setStorybookLoading(true);
@@ -227,20 +244,15 @@ export function useVoiceAgent(): VoiceAgent {
     return () => clearInterval(t);
   }, [connected]);
 
-  // Nudge the agent 1 minute before the limit, hard stop at the limit.
+  // Story beats and the 5:00 hard stop. Skips the beats once the child has asked to stop.
   useEffect(() => {
-    if (!connected || maxSeconds === null) return;
-    if (elapsedSeconds >= maxSeconds) {
-      void stop();
-      return;
+    if (!connected) return;
+    for (const cue of dueCues(elapsedSeconds, sentCues.current)) {
+      sentCues.current.add(cue.key);
+      if (!stopSent.current) live.current.sendContextualUpdate(cue.text);
     }
-    if (elapsedSeconds >= maxSeconds - 60 && !nudged.current) {
-      nudged.current = true;
-      live.current.sendContextualUpdate(
-        "One minute left. Wrap up: help the child solve the mystery now, then call make_storybook.",
-      );
-    }
-  }, [elapsedSeconds, connected, maxSeconds, stop]);
+    if (shouldHardStop(elapsedSeconds, live.current.isSpeaking)) void stop();
+  }, [elapsedSeconds, connected, stop]);
 
   // Orb volume.
   useEffect(() => {
@@ -263,7 +275,7 @@ export function useVoiceAgent(): VoiceAgent {
   else if (conversation.status === "connecting") status = "connecting";
 
   return {
-    status, volume, transcript, scene, elapsedSeconds, storybook, storybookLoading, error,
+    status, volume, transcript, scene: director.scene, sceneDebug: director.debug, elapsedSeconds, storybook, storybookLoading, error,
     learnedWords, currentWord, start, stop,
   };
 }

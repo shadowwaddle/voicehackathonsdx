@@ -7,9 +7,10 @@ import type { Mood, Scene } from "@/types/contract";
 // edges and add paper grain. The current speaker's blob grows and talks with `volume`.
 
 const PAPER = "#fdf6ea";
+const NARRATOR = { name: "Birbal", color: "#f5a25d" };
 const DEFAULT_PALETTE = ["#f7d3b0", "#f2c2c8", "#d6cbf0", "#c6e3dc", "#fae3a0"];
 const BLOB_COUNT = 8;
-const FADE_MS = 2600;
+const FADE_MS = 2000;
 const FRAME_MS = 1000 / 60;
 const RESOLUTION = 0.33; // canvas pixels per CSS pixel; blur hides it
 
@@ -75,6 +76,8 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
   const colors = useRef({ from: paletteFor(null), to: paletteFor(null), current: paletteFor(null), start: 0 });
   const speed = useRef(mood.speed);
   speed.current = mood.speed;
+  const loudness = useRef(0);
+  loudness.current = Math.min(1, Math.max(0, volume));
   const redraw = useRef<() => void>(() => {});
 
   const paletteKey = (scene?.palette ?? []).join(",");
@@ -103,6 +106,7 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
     let last = performance.now();
     let lastDraw = 0;
     let raf = 0;
+    let brush = 0; // smoothed volume: speech pushes the paint
 
     const paint = (now: number) => {
       const { width: w, height: h } = canvas;
@@ -119,7 +123,7 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
       BLOBS.forEach((b, i) => {
         const cx = (b.x + Math.sin(t * 0.07 * b.drift + b.phase) * 0.08) * w;
         const cy = (b.y + Math.cos(t * 0.06 * b.drift + b.phase * 1.3) * 0.08) * h;
-        const R = b.r * size;
+        const R = b.r * size * (1 + brush * 0.08);
         const col = c.current[i];
 
         // Wobbly outline, like pigment spreading unevenly.
@@ -146,7 +150,8 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       if (now - lastDraw < FRAME_MS) return;
-      t += (Math.min(now - last, 100) / 1000) * speed.current * 10;
+      brush += (loudness.current - brush) * 0.18;
+      t += (Math.min(now - last, 100) / 1000) * speed.current * (1 + brush * 1.8) * 10;
       last = now;
       lastDraw = now;
       paint(now);
@@ -169,8 +174,11 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
     };
   }, [reduced]);
 
-  const characters = (scene?.characters ?? []).slice(0, 4);
-  const speaker = scene?.speaker?.trim().toLowerCase() ?? "";
+  // With nobody in the scene yet, the narrator's blob still shows the voice.
+  const cast = scene?.characters?.length ? scene.characters : scene ? [NARRATOR] : [];
+  const characters = cast.slice(0, 4);
+  const named = scene?.speaker?.trim().toLowerCase() ?? "";
+  const speaker = characters.some((c) => c.name.trim().toLowerCase() === named) ? named : characters[0]?.name.trim().toLowerCase() ?? "";
 
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden style={{ background: PAPER }}>
@@ -188,7 +196,7 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
         className="absolute -inset-[6%]"
         style={{
           filter: `saturate(${mood.saturate}) brightness(${mood.brightness})`,
-          transition: "filter 2.6s ease",
+          transition: "filter 2s ease",
         }}
       >
         <canvas ref={canvasRef} className="h-full w-full" style={{ filter: "blur(24px)", transform: "translateZ(0)", willChange: "transform" }} />

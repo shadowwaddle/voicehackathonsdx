@@ -1,5 +1,6 @@
 import type { Genre } from "@/types/contract";
 import { GENRE_INFO } from "@/lib/genres";
+import { storyCard } from "@/lib/birbal/stories";
 
 export function GenreCard({ genre, onClick }: { genre: Genre; onClick: () => void }) {
   const g = GENRE_INFO[genre];
@@ -12,7 +13,10 @@ export function GenreCard({ genre, onClick }: { genre: Genre; onClick: () => voi
       <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/70 text-3xl transition group-hover:scale-110" aria-hidden>
         {g.icon}
       </span>
-      <span className="font-display text-xl font-semibold leading-tight">{g.label}</span>
+      <span>
+        <span className="block text-sm font-semibold opacity-75">{g.label}</span>
+        <span className="mt-0.5 block font-display text-xl font-semibold leading-tight">{storyCard(genre).theme}</span>
+      </span>
     </button>
   );
 }
