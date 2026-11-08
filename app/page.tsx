@@ -22,10 +22,13 @@ export default function Home() {
   const lang = settings.learningLanguage;
   const langParam = lang !== "off" && !langOn ? "&lang=off" : "";
 
-  const startGenre = (genre: Genre) => router.push(`/story?genre=${genre}${langParam}`);
+  // First run: a parent must accept the privacy flow before any story can start.
+  const needsSetup = ready && !settings.consentAt;
+  const go = (url: string) => router.push(needsSetup ? "/parents/welcome" : url);
+  const startGenre = (genre: Genre) => go(`/story?genre=${genre}${langParam}`);
   const surprise = () => genres.length && startGenre(genres[Math.floor(Math.random() * genres.length)]);
   const continueStory = (s: SavedStory) =>
-    router.push(`/story?genre=${genres.includes(s.genre) ? s.genre : genres[0] ?? s.genre}&continue=${s.id}${langParam}`);
+    go(`/story?genre=${genres.includes(s.genre) ? s.genre : genres[0] ?? s.genre}&continue=${s.id}${langParam}`);
 
   return (
     <main className="mx-auto min-h-dvh max-w-5xl px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-8">
@@ -53,8 +56,11 @@ export default function Home() {
           disabled={!ready || genres.length === 0}
           className="mt-8 flex w-full items-center justify-center gap-3 rounded-[2rem] bg-sun py-6 font-display text-3xl font-bold text-white shadow-lift transition hover:bg-sun-deep active:scale-[0.98] disabled:opacity-40 sm:py-7 sm:text-4xl"
         >
-          Start a story
+          {needsSetup ? "Ask a grown-up to set me up" : "Start a story"}
         </button>
+        {needsSetup && (
+          <p className="mt-3 text-center text-muted">A grown-up needs to say hello to Birbal first. It only takes a minute.</p>
+        )}
 
         {ready && lang !== "off" && (
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">

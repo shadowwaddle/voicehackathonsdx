@@ -2,7 +2,7 @@
 
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
-- shadowwaddle: **Parent Dashboard** (D1-D3). Editing `types/contract.ts` (additive), `app/parents/**`, `components/dashboard/**`, `hooks/useReports.ts`, `app/api/report/**`, `app/api/delete-conversation/**`, `lib/scoring/**`, the end-of-session handling in `hooks/useVoiceAgent.ts` (+ mock), and the first-run consent gate in `app/page.tsx` / `app/story/page.tsx`. sthavir007: please ask before touching these.
+- shadowwaddle: Parent Dashboard done (D1-D3). The files are free again.
 - sthavir007: —
 
 ## To do (proposed tracks for the rest of the hackathon)
@@ -24,6 +24,9 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- shadowwaddle: D2 + D3 done. `/parents` is now a dashboard behind the PIN with tabs Overview (score ring, trend, 4 stats, a positive or neutral insight), Progress (hand-built SVG line chart, sparklines, first-3 vs last-3 in plain language, "Trends appear after 3 stories"), Stories, Privacy (4-step timeline worded to match the code, deletion receipts with failures in amber, Delete everything, storybook link note) and Settings (moved here, plus Load demo history). First-run `/parents/welcome`: privacy explainer, "I'm the parent and I agree", then the parent picks a PIN. Home and Story are blocked until then. A Playwright test on the mock agent passed 12/13. The only failure is the expected 502 from `/api/report`, since the dev sandbox has no Daytona key, and the mock fell back to a `demo` report.
+  - **Not tested yet:** the real `/api/report` (needs `DAYTONA_API_KEY`; it also assumes `networkBlockAll` is allowed on our Daytona tier) and real conversation deletion (needs `ELEVENLABS_API_KEY` with delete permission). sthavir007's keyed sandbox is the place to try both.
+  - **Privacy gap for Lane B (`lib/daytona.ts`):** storybook sandboxes use `autoStopInterval: 1440`, which stops them after 24h *idle*, but a stopped sandbox still holds `story.json` (summary and choices). Suggest adding `autoDeleteInterval: 0` (delete when stopped) or `ttlMinutes: 1440`. The Privacy tab currently says the link stops working "once that sandbox has been idle for 24 hours".
 - sthavir007: Agent speed + language pass. Measured replies were 2.1-4.4s (model reasoning plus tool calls before speech). Set `reasoning_effort: none`, prompt now speaks before any tool call, `turn_eagerness: eager`, `speculative_turn` on, 1s filler backstop. Target is under 1.5s; not re-measured yet.
   - **Language Adventure is on the agent:** LANGUAGE ADVENTURE prompt section, `teach_word` client tool, `learning_language` / `learning_language_code` defaulting to "none". Did not add es/fr/zh/hi/ja language presets, since the story stays in English and those switch the whole conversation; `eleven_v4_turbo` is unchanged.
 - shadowwaddle: D1 done, scoring + deletion pipeline. Contract (additive): `SessionMetrics`, `SessionReport` (+ `demo?`), `ReportRequest`, `DeletionStatus`, `StorybookRequest.hintsUsed?`, `ParentSettings.consentAt?`. `lib/scoring/score.py` is stdlib Python with 5 unit tests passing. `POST /api/report` scores in an ephemeral, network-blocked Daytona sandbox, deletes it in `finally`, and at the same time deletes the ElevenLabs conversation (`DELETE /v1/convai/conversations/{id}`, 4 retries with backoff). It returns numbers only and logs only sizes and timings. Both hooks send the report when the story ends, then clear the transcript. The mock falls back to a local `demo: true` report when there's no Daytona key.

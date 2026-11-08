@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Suspense, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { GENRES, type Genre, type LearningLanguage } from "@/types/contract";
 import { useVoiceAgent as useRealAgent } from "@/hooks/useVoiceAgent";
 import { useVoiceAgent as useMockAgent } from "@/hooks/useVoiceAgent.mock";
@@ -22,6 +22,11 @@ const useVoiceAgent = process.env.NEXT_PUBLIC_MOCK_AGENT === "1" ? useMockAgent 
 function StoryScreen() {
   const params = useSearchParams();
   const { settings, ready } = useParentSettings();
+  const router = useRouter();
+  // No stories until a parent has accepted the privacy flow.
+  useEffect(() => {
+    if (ready && !settings.consentAt) router.replace("/parents/welcome");
+  }, [ready, settings.consentAt, router]);
   const { addStory, getStory } = useSavedStories();
   const agent = useVoiceAgent();
 
