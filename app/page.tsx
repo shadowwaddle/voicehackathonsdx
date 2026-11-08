@@ -1,97 +1,94 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { GENRE_INFO, type Genre, type ParentSettings, type SavedStory } from "@/types/contract";
-import { DEFAULT_SETTINGS, loadSettings, loadStories } from "@/lib/settings";
-import { MOCK_STORIES } from "@/lib/mock";
-import { TopBar } from "@/components/TopBar";
+import type { Genre, SavedStory } from "@/types/contract";
+import { GENRE_INFO } from "@/lib/genres";
+import { useParentSettings } from "@/hooks/useParentSettings";
+import { useSavedStories } from "@/hooks/useSavedStories";
+import { Wordmark } from "@/components/Wordmark";
+import { GenreCard } from "@/components/GenreCard";
+import { LockIcon } from "@/components/Icons";
 
 export default function Home() {
   const router = useRouter();
-  const [settings, setSettings] = useState<ParentSettings>(DEFAULT_SETTINGS);
-  const [stories, setStories] = useState<SavedStory[]>([]);
-  const [genre, setGenre] = useState<Genre | null>(null);
+  const { settings, ready } = useParentSettings();
+  const { stories } = useSavedStories();
+  const genres = settings.allowedGenres;
 
-  useEffect(() => {
-    const s = loadSettings();
-    setSettings(s);
-    setGenre(s.allowedGenres[0] ?? null);
-    const saved = loadStories();
-    setStories(saved.length ? saved : MOCK_STORIES);
-  }, []);
-
-  const start = () => genre && router.push(`/story?genre=${genre}`);
+  const startGenre = (genre: Genre) => router.push(`/story?genre=${genre}`);
+  const surprise = () => genres.length && startGenre(genres[Math.floor(Math.random() * genres.length)]);
+  const continueStory = (s: SavedStory) =>
+    router.push(`/story?genre=${genres.includes(s.genre) ? s.genre : genres[0] ?? s.genre}&continue=${s.id}`);
 
   return (
-    <main className="pb-16">
-      <TopBar
-        right={
-          <Link href="/parent" className="rounded-full bg-white/70 px-4 py-2 text-sm font-bold shadow-sm hover:bg-white">
-            👪 Grown-ups
-          </Link>
-        }
-      />
+    <main className="mx-auto min-h-dvh max-w-5xl px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-8">
+      <header className="flex items-center justify-between py-2">
+        <Wordmark />
+        <Link
+          href="/parents"
+          aria-label="Grown-ups settings"
+          className="grid h-11 w-11 place-items-center rounded-full bg-white/70 text-muted shadow-soft transition hover:text-ink"
+        >
+          <LockIcon />
+        </Link>
+      </header>
 
-      <section className="mx-auto max-w-5xl px-4 sm:px-8">
-        <div className="float-up rounded-[2rem] bg-white/70 p-6 shadow-xl backdrop-blur sm:p-10">
-          <h1 className="font-display text-4xl font-bold leading-tight sm:text-6xl">
-            Ready for a mystery?
-          </h1>
-          <p className="mt-3 max-w-xl text-lg text-ink/70 sm:text-xl">
-            Pick a world. Birbal tells the story — and you help solve the puzzle!
-          </p>
+      <section className="rise mt-6 sm:mt-10">
+        <h1 className="font-display text-4xl font-bold leading-[1.05] sm:text-6xl">
+          Ready for a mystery?
+        </h1>
+        <p className="mt-3 max-w-lg text-lg text-muted sm:text-xl">
+          Birbal tells the story. You find the clues and solve the puzzle!
+        </p>
 
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-            {settings.allowedGenres.map((g) => {
-              const info = GENRE_INFO[g];
-              const active = g === genre;
+        <button
+          onClick={surprise}
+          disabled={!ready || genres.length === 0}
+          className="mt-8 flex w-full items-center justify-center gap-3 rounded-[2rem] bg-sun py-6 font-display text-3xl font-bold text-white shadow-lift transition hover:bg-sun-deep active:scale-[0.98] disabled:opacity-40 sm:py-7 sm:text-4xl"
+        >
+          <span aria-hidden>✨</span> Start a story
+        </button>
+      </section>
+
+      <section className="rise mt-12" style={{ animationDelay: "80ms" }}>
+        <h2 className="font-display text-2xl font-semibold">Pick a world</h2>
+        {ready && genres.length === 0 ? (
+          <p className="mt-3 rounded-3xl bg-white/70 p-6 text-muted">Ask a grown-up to switch on some story worlds.</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {genres.map((g) => (
+              <GenreCard key={g} genre={g} onClick={() => startGenre(g)} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {stories.length > 0 && (
+        <section className="rise mt-12" style={{ animationDelay: "160ms" }}>
+          <h2 className="font-display text-2xl font-semibold">Saved adventures</h2>
+          <div className="-mx-4 mt-4 flex snap-x gap-4 overflow-x-auto px-4 pb-4 sm:-mx-8 sm:px-8">
+            {stories.map((s) => {
+              const g = GENRE_INFO[s.genre];
               return (
                 <button
-                  key={g}
-                  onClick={() => setGenre(g)}
-                  className={`${info.color} flex min-h-28 flex-col items-start justify-between rounded-3xl p-4 text-left transition active:scale-95 ${
-                    active ? "ring-4 ring-sun ring-offset-2" : "opacity-80 hover:opacity-100"
-                  }`}
+                  key={s.id}
+                  onClick={() => continueStory(s)}
+                  className="w-64 shrink-0 snap-start rounded-[1.75rem] bg-paper p-5 text-left shadow-soft transition hover:-translate-y-1 hover:shadow-lift"
                 >
-                  <span className="text-4xl">{info.emoji}</span>
-                  <span className="font-display text-xl font-semibold">{info.label}</span>
+                  <span style={{ background: g.bg }} className="grid h-12 w-12 place-items-center rounded-2xl text-2xl" aria-hidden>
+                    {g.icon}
+                  </span>
+                  <h3 className="mt-3 line-clamp-2 font-display text-lg font-semibold leading-snug">{s.title}</h3>
+                  {s.characters.length > 0 && (
+                    <p className="mt-1 line-clamp-1 text-sm text-muted">With {s.characters.join(", ")}</p>
+                  )}
+                  <p className="mt-3 text-sm font-semibold" style={{ color: g.ink }}>Continue the adventure →</p>
                 </button>
               );
             })}
           </div>
-
-          <button
-            onClick={start}
-            disabled={!genre}
-            className="mt-8 w-full rounded-full bg-sun py-6 font-display text-3xl font-bold text-white shadow-lg shadow-sun/40 transition active:scale-[0.98] disabled:opacity-40"
-          >
-            ▶ Start a story
-          </button>
-          {settings.allowedGenres.length === 0 && (
-            <p className="mt-3 text-center text-ink/60">Ask a grown-up to turn on some story worlds.</p>
-          )}
-        </div>
-
-        <h2 className="mt-12 font-display text-3xl font-bold">Your storybooks</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {stories.map((s) => (
-            <Link
-              key={s.story_id}
-              href={`/storybook?story=${s.story_id}`}
-              className="flex gap-4 rounded-3xl bg-white/80 p-5 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <span className={`${GENRE_INFO[s.genre].color} grid h-16 w-16 shrink-0 place-items-center rounded-2xl text-3xl`}>
-                {GENRE_INFO[s.genre].emoji}
-              </span>
-              <div className="min-w-0">
-                <h3 className="font-display text-xl font-semibold leading-snug">{s.title}</h3>
-                <p className="mt-1 line-clamp-2 text-ink/60">{s.summary}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }

@@ -11,6 +11,7 @@
     "@daytonaio/sdk": "latest",
     "@elevenlabs/react": "latest",
     "next": "latest",
+    "qrcode.react": "latest",
     "react": "latest",
     "react-dom": "latest"
   },
