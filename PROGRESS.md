@@ -10,4 +10,5 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- shadowwaddle: Added rules to CLAUDE.md: run everything in Daytona, use ElevenLabs/Daytona tools as much as possible, always pull and read PROGRESS.md first
 - shadowwaddle: Set up the repo, CLAUDE.md and PROGRESS.md
