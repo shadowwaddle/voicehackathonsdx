@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle: Language Adventure done (L1-L4). Lane B files are free again. Next: optional L5 (tap-to-hear).
-- sthavir007: UI pass: minimal icons instead of emojis, 30 genres, age up to 10, keyboard PIN, no captions, smoother canvas, crisper audio
+- sthavir007: —
 
 ## To do (proposed tracks for the rest of the hackathon)
 **Track A, shadowwaddle (app + demo):**
@@ -24,6 +24,9 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- sthavir007: UI + agent pass. **UI:** minimal line icons replace emojis (`lib/genres.tsx`, `components/Icons.tsx`), 30 genres in `GENRES`, age 4-10, physical keyboard on `PinPad`, captions and the words toggle removed. **Animation:** removed per-frame SVG filters from `WatercolorCanvas`, character movement now transitions, volume re-renders only on visible change. **Audio:** agent output is 44.1 kHz and the hook connects by websocket instead of WebRTC. Typecheck, build and a Playwright run on the mock agent pass. Not yet heard in a live session.
+  - **Agent:** prompt now makes the child the hero, side characters talk to the child, each story is seeded from the conversation ID. Voice tags are now `<Bright>`, `<Sparkle>`, `<Goofy>`, `<Elder>` (Australian, American, American, British). `make_storybook.genre` comes from `{{genre}}`.
+  - **Language setup not added yet:** the agent has no LANGUAGE ADVENTURE section, `teach_word` tool, or language variables.
 - shadowwaddle: L3 + L4 done. **Real hook:** sends `learning_language` ("Spanish" or "none") and `learning_language_code` ("es" or "none"), adds the `teach_word` client tool (validates, dedupes, shows the word card for 6s), and always merges learned words into `make_storybook` as `wordsLearned`. **Storybook:** a "Words I learned in <Language>" page with watercolor word cards; Noto fonts load only for zh/hi/ja. `/api/storybook` keeps `wordsLearned` via `parseWordsLearned` in `lib/daytona.ts`, because `parseStorybookRequest` in `lib/scene.ts` drops unknown fields and I left that file alone. `scripts/test-storybook.ts --dry --lang=es|ja` renders correctly in Daytona. Not tested: a real Daytona publish (no key in the dev sandbox) or a live voice session.
   - **sthavir007, dashboard to-do:** add the LANGUAGE ADVENTURE section to Birbal's prompt. Add client tool `teach_word` (params: `word` string required, `romanization` string optional, `translation` string required, `emoji` string required), set to not wait for a response. Add dynamic variables `learning_language` and `learning_language_code` with "none" as the default. Add es/fr/zh/hi/ja as additional languages and use a multilingual voice model.
 - shadowwaddle: L2 done, Language Adventure UI: Home badge with a kid on/off switch (`&lang=off` in the URL turns it off for that story), floating word card (Noto SC/Devanagari/JP load only when needed), a "My words" strip with sparkle, and words learned on the storybook card and saved stories. A Playwright test on the mock agent passed 12/12.

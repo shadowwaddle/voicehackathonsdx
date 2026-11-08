@@ -7,8 +7,8 @@ import { useVoiceAgent as useRealAgent } from "@/hooks/useVoiceAgent";
 import { useVoiceAgent as useMockAgent } from "@/hooks/useVoiceAgent.mock";
 import { useParentSettings } from "@/hooks/useParentSettings";
 import { useSavedStories } from "@/hooks/useSavedStories";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { GENRE_INFO } from "@/lib/genres";
+import { BirbalMark, BrushIcon, ListenIcon, MoonIcon } from "@/components/Icons";
 import { WatercolorCanvas } from "@/components/WatercolorCanvas";
 import { TimeRing } from "@/components/TimeRing";
 import { StorybookModal } from "@/components/StorybookModal";
@@ -23,7 +23,6 @@ function StoryScreen() {
   const params = useSearchParams();
   const { settings, ready } = useParentSettings();
   const { addStory, getStory } = useSavedStories();
-  const [captionsOn, setCaptionsOn] = useLocalStorage("birbal.captions", true);
   const agent = useVoiceAgent();
 
   const asked = params.get("genre") as Genre;
@@ -61,7 +60,6 @@ function StoryScreen() {
 
   const live = agent.status === "speaking" || agent.status === "listening";
   const speaker = agent.scene?.speaker || "Birbal";
-  const lastLines = agent.transcript.slice(-2);
 
   return (
     <main className="relative min-h-dvh overflow-hidden">
@@ -93,7 +91,7 @@ function StoryScreen() {
         </header>
 
         {/* Center */}
-        <div className="flex flex-1 flex-col items-center justify-center py-8">
+        <div className={`flex flex-1 flex-col items-center py-8 ${live ? "justify-start" : "justify-center"}`}>
           {agent.status === "idle" && (
             <button
               onClick={begin}
@@ -102,13 +100,13 @@ function StoryScreen() {
             >
               <span className="soft-pulse absolute inset-0 rounded-full bg-sun" aria-hidden />
               <span className="relative text-center">
-                <span className="block text-6xl" aria-hidden>🦉</span>
+                <BirbalMark className="mx-auto h-16 w-16" />
                 <span className="mt-2 block font-display text-2xl font-bold">Tap to start</span>
               </span>
             </button>
           )}
 
-          {agent.status === "connecting" && <Status emoji="🦉" text="Waking Birbal up…" />}
+          {agent.status === "connecting" && <Status icon={<BirbalMark />} text="Waking Birbal up…" />}
 
           {live && agent.currentWord && <WordCard word={agent.currentWord} />}
 
@@ -119,17 +117,14 @@ function StoryScreen() {
                 aria-hidden
               />
               <span className="relative grid h-28 w-28 place-items-center rounded-full bg-white/85 text-5xl shadow-soft backdrop-blur" aria-hidden>
-                {agent.status === "speaking" ? "🦉" : "👂"}
-              </span>
-              <span className="absolute -bottom-12 whitespace-nowrap rounded-full bg-white/75 px-4 py-1.5 font-display text-lg font-medium backdrop-blur">
-                {agent.status === "speaking" ? `${speaker} is speaking` : "Birbal is listening"}
+                {agent.status === "speaking" ? <BirbalMark /> : <ListenIcon />}
               </span>
             </div>
           )}
 
           {agent.status === "ended" && !agent.storybook && !agent.storybookLoading && (
             <div className="rise rounded-[2rem] bg-paper/90 p-8 text-center shadow-lift backdrop-blur">
-              <div className="text-5xl" aria-hidden>🌙</div>
+              <div className="grid justify-items-center text-5xl text-sun"><MoonIcon /></div>
               <h2 className="mt-3 font-display text-3xl font-bold">See you next time!</h2>
               <p className="mt-1 text-muted">Birbal will save the next mystery for you.</p>
               <Link href="/" className="mt-6 inline-block rounded-full bg-sun px-8 py-3 font-display text-xl font-bold text-white">
@@ -147,26 +142,7 @@ function StoryScreen() {
         {live && (
           <footer className="space-y-3">
             <MyWords words={agent.learnedWords} />
-            {captionsOn && lastLines.length > 0 && (
-              <div className="mx-auto max-w-2xl space-y-2 rounded-[1.75rem] bg-white/75 p-4 shadow-soft backdrop-blur">
-                {lastLines.map((l, i) => (
-                  <p
-                    key={l.id}
-                    className={`text-lg leading-snug sm:text-xl ${i < lastLines.length - 1 ? "opacity-55" : ""} ${l.role === "child" ? "text-right font-medium text-[#4f5d8a]" : ""}`}
-                  >
-                    {l.text}
-                  </p>
-                ))}
-              </div>
-            )}
             <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={() => setCaptionsOn(!captionsOn)}
-                aria-pressed={captionsOn}
-                className="rounded-full bg-white/75 px-5 py-3 font-display text-lg font-medium shadow-soft backdrop-blur"
-              >
-                {captionsOn ? "Hide words" : "Show words"}
-              </button>
               <button
                 onClick={() => agent.stop()}
                 className="rounded-full bg-ink px-7 py-3 font-display text-lg font-semibold text-white shadow-soft"
@@ -180,7 +156,7 @@ function StoryScreen() {
 
       {agent.storybookLoading && (
         <div className="fixed inset-0 z-20 grid place-items-center bg-cream/60 backdrop-blur-sm">
-          <Status emoji="🎨" text="Birbal is painting your storybook…" />
+          <Status icon={<BrushIcon />} text="Birbal is painting your storybook…" />
         </div>
       )}
       {agent.storybook && <StorybookModal storybook={agent.storybook} words={agent.learnedWords} language={lang} />}
@@ -188,10 +164,10 @@ function StoryScreen() {
   );
 }
 
-function Status({ emoji, text }: { emoji: string; text: string }) {
+function Status({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="rise flex flex-col items-center gap-4 text-center" role="status">
-      <span className="bob grid h-28 w-28 place-items-center rounded-full bg-white/85 text-5xl shadow-soft" aria-hidden>{emoji}</span>
+      <span className="bob grid h-28 w-28 place-items-center rounded-full bg-white/85 text-5xl shadow-soft" aria-hidden>{icon}</span>
       <p className="font-display text-2xl font-semibold">{text}</p>
     </div>
   );

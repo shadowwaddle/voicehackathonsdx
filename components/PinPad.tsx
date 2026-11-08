@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // 4-digit PIN pad. onComplete returns false to show an error and clear.
 export function PinPad({ title, hint, onComplete }: { title: string; hint?: string; onComplete: (pin: string) => boolean }) {
@@ -19,6 +19,22 @@ export function PinPad({ title, hint, onComplete }: { title: string; hint?: stri
       }, 120);
     }
   };
+
+  // Physical keyboard works the same as the on-screen keys.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^\d$/.test(e.key)) {
+        e.preventDefault();
+        press(e.key);
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        setPin((p) => p.slice(0, -1));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   return (
     <div className="mx-auto w-full max-w-xs text-center">

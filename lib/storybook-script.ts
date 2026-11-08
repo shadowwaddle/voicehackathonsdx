@@ -72,7 +72,7 @@ def bullets(items):
     return "<ul>%s</ul>" % "".join("<li>%s</li>" % esc(x) for x in items) if items else "<p>—</p>"
 
 
-scenes = book["scenes"] or [{"location": book["genre"].title(), "mood": "calm", "palette": fallback, "characters": book["characters"], "speaker": "Birbal"}]
+scenes = book["scenes"] or [{"location": book["genre"].replace("_", " ").title(), "mood": "calm", "palette": fallback, "characters": book["characters"], "speaker": "Birbal"}]
 pages = "".join('<section class="page">%s<h2>%s</h2></section>' % (illustration(s, i), esc(s["location"])) for i, s in enumerate(scenes))
 LANG_NAMES = {"es": "Spanish", "fr": "French", "zh": "Mandarin", "hi": "Hindi", "ja": "Japanese"}
 NOTO = {"zh": "Noto Sans SC", "hi": "Noto Sans Devanagari", "ja": "Noto Sans JP"}
@@ -130,7 +130,7 @@ p,li{font-size:20px;line-height:1.6}ul{padding-left:22px}svg{display:block;width
 <section class="page"><h2>Your choices</h2>%(choices)s<h2>Puzzles you solved</h2>%(puzzles)s</section>
 %(words_page)s
 </body></html>""" % {
-    "title": esc(book["title"]), "genre": esc(book["genre"].title()), "starring": starring, "pages": pages,
+    "title": esc(book["title"]), "genre": esc(book["genre"].replace("_", " ").title()), "starring": starring, "pages": pages,
     "summary": esc(book["summary"]), "choices": bullets(book["choices"]), "puzzles": bullets(book["puzzles_solved"]),
     "font_link": font_link, "word_css": word_css, "words_page": words_page,
 }

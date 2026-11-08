@@ -6,7 +6,7 @@ import { GENRE_INFO } from "@/lib/genres";
 import { useParentSettings } from "@/hooks/useParentSettings";
 import { useSavedStories } from "@/hooks/useSavedStories";
 import { PinPad } from "@/components/PinPad";
-import { BackIcon } from "@/components/Icons";
+import { BackIcon, CheckIcon, LockIcon } from "@/components/Icons";
 
 type PinStep = null | "new" | "confirm";
 
@@ -44,7 +44,7 @@ export default function ParentsPage() {
             <BackIcon className="h-4 w-4" /> Back to Birbal
           </Link>
           <span aria-live="polite" className={`text-sm font-medium text-emerald-700 transition ${toast ? "opacity-100" : "opacity-0"}`}>
-            {toast ?? "Saved"} ✓
+            {toast ?? "Saved"} <CheckIcon className="inline h-4 w-4" />
           </span>
         </header>
         {children}
@@ -107,12 +107,12 @@ export default function ParentsPage() {
 
       <Card title="Child's age" detail={`${settings.childAge} years old`}>
         <input
-          type="range" min={4} max={9} step={1} value={settings.childAge}
+          type="range" min={4} max={10} step={1} value={settings.childAge}
           onChange={(e) => save({ childAge: Number(e.target.value) })}
           className="w-full accent-sun" aria-label="Child's age"
         />
         <div className="mt-1 flex justify-between text-xs text-muted">
-          {[4, 5, 6, 7, 8, 9].map((a) => <span key={a}>{a}</span>)}
+          {[4, 5, 6, 7, 8, 9, 10].map((a) => <span key={a}>{a}</span>)}
         </div>
       </Card>
 
@@ -214,7 +214,7 @@ export default function ParentsPage() {
       </Card>
 
       <p className="px-1 pt-2 text-sm leading-relaxed text-muted">
-        🔒 Birbal never asks for or keeps your child&apos;s name, school or location. Stories are told by an AI voice
+        <LockIcon className="mr-1 inline h-4 w-4" />Birbal never asks for or keeps your child&apos;s name, school or location. Stories are told by an AI voice
         and are designed to be gentle and age-appropriate.
       </p>
     </div>,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BirbalMark } from "@/components/Icons";
 
 export function Wordmark({ size = "lg" }: { size?: "lg" | "sm" }) {
   return (
@@ -9,7 +10,7 @@ export function Wordmark({ size = "lg" }: { size?: "lg" | "sm" }) {
         }`}
         aria-hidden
       >
-        🦉
+        <BirbalMark className="h-[70%] w-[70%]" />
       </span>
       <span className={`font-display font-bold tracking-tight ${size === "lg" ? "text-4xl" : "text-2xl"}`}>
         Birbal

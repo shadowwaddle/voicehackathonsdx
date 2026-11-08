@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { Mood, Scene } from "@/types/contract";
 
 // Full-bleed, softly animated watercolor background with simple blob characters.
@@ -9,9 +9,9 @@ import type { Mood, Scene } from "@/types/contract";
 const PAPER = "#fdf6ea";
 const DEFAULT_PALETTE = ["#f7d3b0", "#f2c2c8", "#d6cbf0", "#c6e3dc", "#fae3a0"];
 const BLOB_COUNT = 8;
-const FADE_MS = 2000;
-const FRAME_MS = 1000 / 30; // 30fps is plenty for slow paint and kinder to iPads
-const RESOLUTION = 0.5; // canvas pixels per CSS pixel; blur hides it
+const FADE_MS = 2600;
+const FRAME_MS = 1000 / 60;
+const RESOLUTION = 0.33; // canvas pixels per CSS pixel; blur hides it
 
 const MOODS: Record<Mood, { speed: number; saturate: number; brightness: number }> = {
   calm: { speed: 0.6, saturate: 0.95, brightness: 1 },
@@ -90,7 +90,7 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
+    const ctx = canvas?.getContext("2d", { alpha: false });
     if (!canvas || !ctx) return;
 
     const resize = () => {
@@ -134,9 +134,9 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
         }
         // Pigment pools slightly at the edges, then fades out.
         const g = ctx.createRadialGradient(cx, cy, R * 0.1, cx, cy, R * 1.08);
-        g.addColorStop(0, rgba(col, 0.22));
-        g.addColorStop(0.72, rgba(col, 0.3));
-        g.addColorStop(0.9, rgba(col, 0.38));
+        g.addColorStop(0, rgba(col, 0.12));
+        g.addColorStop(0.72, rgba(col, 0.17));
+        g.addColorStop(0.9, rgba(col, 0.22));
         g.addColorStop(1, rgba(col, 0));
         ctx.fillStyle = g;
         ctx.fill();
@@ -176,14 +176,6 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
     <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden style={{ background: PAPER }}>
       <svg width="0" height="0" className="absolute">
         <defs>
-          <filter id="wc-bleed" x="-10%" y="-10%" width="120%" height="120%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.006" numOctaves="2" seed="7" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="16" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-          <filter id="wc-edge" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="3" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
           <filter id="wc-paper">
             <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="11" />
             <feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.38  0 0 0 0 0.3  0 0 0 0.55 0" />
@@ -196,14 +188,14 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
         className="absolute -inset-[6%]"
         style={{
           filter: `saturate(${mood.saturate}) brightness(${mood.brightness})`,
-          transition: "filter 2s ease",
+          transition: "filter 2.6s ease",
         }}
       >
-        <canvas ref={canvasRef} className="h-full w-full" style={{ filter: "url(#wc-bleed) blur(10px)" }} />
+        <canvas ref={canvasRef} className="h-full w-full" style={{ filter: "blur(24px)", transform: "translateZ(0)", willChange: "transform" }} />
       </div>
 
       {/* Characters */}
-      <svg className="absolute inset-x-0 bottom-[20%] h-[40%] w-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMax meet">
+      <svg className="absolute inset-x-0 bottom-[13%] h-[40%] w-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMax meet">
         {characters.map((ch, i) => {
           const n = characters.length;
           const x = (1000 / (n + 1)) * (i + 1);
@@ -215,7 +207,7 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
               y={330 + (i % 2) * 40}
               color={hexToRgb(ch.color)}
               speaking={isSpeaker}
-              volume={isSpeaker ? volume : 0}
+              level={isSpeaker ? Math.round(volume * 6) / 6 : 0}
               delay={i * 0.6}
               reduced={reduced}
             />
@@ -224,40 +216,39 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
       </svg>
 
       {/* Paper grain */}
-      <svg className="absolute inset-0 h-full w-full opacity-[0.22] mix-blend-multiply">
+      <svg className="absolute inset-0 h-full w-full opacity-[0.1]" style={{ transform: "translateZ(0)" }}>
         <rect width="100%" height="100%" filter="url(#wc-paper)" />
       </svg>
     </div>
   );
 }
 
-function Character({
-  x, y, color, speaking, volume, delay, reduced,
-}: { x: number; y: number; color: RGB; speaking: boolean; volume: number; delay: number; reduced: boolean }) {
-  const v = Math.min(1, Math.max(0, volume));
-  const scale = speaking ? 1.08 + v * 0.08 : 1;
-  const mouthOpen = speaking ? 2 + v * 14 : 0;
+const BODY = "M0 -88 C58 -92 98 -50 94 6 C90 60 50 90 0 88 C-52 90 -96 56 -92 2 C-90 -52 -56 -86 0 -88 Z";
+const FLOW = "cubic-bezier(.22,1,.36,1)";
+
+const Character = memo(function Character({
+  x, y, color, speaking, level, delay, reduced,
+}: { x: number; y: number; color: RGB; speaking: boolean; level: number; delay: number; reduced: boolean }) {
+  const scale = speaking ? 1.06 + level * 0.07 : 1;
+  const open = speaking ? 0.12 + level * 0.88 : 0;
   const light = mix(color, [255, 255, 255], 0.45);
 
   return (
-    <g transform={`translate(${x} ${y})`} style={{ animation: "wc-wash 2s ease both" }}>
-      <g className={reduced ? undefined : "bob"} style={{ animationDelay: `${delay}s` }}>
-        <g style={{ transform: `scale(${scale})`, transformBox: "fill-box", transformOrigin: "50% 100%", transition: "transform 180ms ease-out" }}>
-          <g filter="url(#wc-edge)">
-            <ellipse cx="0" cy="0" rx="92" ry="86" fill={rgba(color, 0.78)} />
-            <ellipse cx="-22" cy="-28" rx="44" ry="34" fill={rgba(light, 0.55)} />
+    <g style={{ transform: `translate(${x}px, ${y}px)`, transition: `transform 900ms ${FLOW}` }}>
+      <g style={{ animation: "wc-wash 1.2s ease both" }}>
+        <g className={reduced ? undefined : "bob"} style={{ animationDelay: `${delay}s` }}>
+          <g style={{ transform: `scale(${scale})`, transformBox: "fill-box", transformOrigin: "50% 100%", transition: `transform 260ms ${FLOW}` }}>
+            <path d={BODY} fill={rgba(color, 0.82)} />
+            <ellipse cx="-22" cy="-28" rx="44" ry="34" fill={rgba(light, 0.5)} />
+            <circle cx="-26" cy="-8" r="8" fill="#3a3150" />
+            <circle cx="26" cy="-8" r="8" fill="#3a3150" />
+            <circle cx="-23" cy="-11" r="2.5" fill="#fff" />
+            <circle cx="29" cy="-11" r="2.5" fill="#fff" />
+            <path d="M -12 22 Q 0 33 12 22" stroke="#3a3150" strokeWidth="5" strokeLinecap="round" fill="none" style={{ opacity: open > 0.1 ? 0 : 1, transition: "opacity 120ms linear" }} />
+            <ellipse cx="0" cy="26" rx="13" ry="16" fill="#5a3a4a" style={{ transform: `scaleY(${open})`, transformBox: "fill-box", transformOrigin: "50% 50%", transition: `transform 130ms ${FLOW}` }} />
           </g>
-          <circle cx="-26" cy="-8" r="8" fill="#3a3150" />
-          <circle cx="26" cy="-8" r="8" fill="#3a3150" />
-          <circle cx="-23" cy="-11" r="2.5" fill="#fff" />
-          <circle cx="29" cy="-11" r="2.5" fill="#fff" />
-          {mouthOpen > 3 ? (
-            <ellipse cx="0" cy="26" rx="13" ry={mouthOpen} fill="#5a3a4a" />
-          ) : (
-            <path d="M -12 22 Q 0 33 12 22" stroke="#3a3150" strokeWidth="5" strokeLinecap="round" fill="none" />
-          )}
         </g>
       </g>
     </g>
   );
-}
+});

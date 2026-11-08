@@ -95,7 +95,7 @@ export function useVoiceAgent(): VoiceAgent {
     // startSession returns void; connection failures arrive through onError.
     live.current.startSession({
       agentId: AGENT_ID,
-      connectionType: "webrtc",
+      connectionType: "websocket",
       dynamicVariables: {
         child_age: settings.childAge,
         genre,
@@ -200,8 +200,10 @@ export function useVoiceAgent(): VoiceAgent {
   useEffect(() => {
     if (!connected) return;
     let raf = 0;
+    let lastVolume = -1;
     const tick = () => {
-      setVolume(live.current.getOutputVolume());
+      const next = Math.round(live.current.getOutputVolume() * 12) / 12;
+      if (next !== lastVolume) setVolume((lastVolume = next)); // re-render only on visible change
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

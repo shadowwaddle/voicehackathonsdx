@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Genre, SavedStory } from "@/types/contract";
 import { GENRE_INFO } from "@/lib/genres";
+import { GlobeIcon } from "@/components/Icons";
 import { useParentSettings } from "@/hooks/useParentSettings";
 import { useSavedStories } from "@/hooks/useSavedStories";
 import { Wordmark } from "@/components/Wordmark";
@@ -52,13 +53,13 @@ export default function Home() {
           disabled={!ready || genres.length === 0}
           className="mt-8 flex w-full items-center justify-center gap-3 rounded-[2rem] bg-sun py-6 font-display text-3xl font-bold text-white shadow-lift transition hover:bg-sun-deep active:scale-[0.98] disabled:opacity-40 sm:py-7 sm:text-4xl"
         >
-          <span aria-hidden>✨</span> Start a story
+          Start a story
         </button>
 
         {ready && lang !== "off" && (
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <span className={`rounded-full px-4 py-2 font-display text-lg font-semibold shadow-soft transition ${langOn ? "bg-[#d9f5f2] text-[#1f7a72]" : "bg-white/70 text-muted"}`}>
-              🌎 {langOn ? `Learning ${languageName(lang)}` : "Language Adventure off"}
+              <GlobeIcon className="mr-1.5 inline h-4 w-4" />{langOn ? `Learning ${languageName(lang)}` : "Language Adventure off"}
             </span>
             <button
               role="switch"
@@ -104,7 +105,7 @@ export default function Home() {
                   <h3 className="mt-3 line-clamp-2 font-display text-lg font-semibold leading-snug">{s.title}</h3>
                   {s.wordsLearned && s.wordsLearned.length > 0 && (
                     <p className="mt-1 text-sm font-medium text-[#1f7a72]">
-                      🌎 Words learned: {s.wordsLearned.length} · {languageName(s.learningLanguage)}
+                      <GlobeIcon className="mr-1 inline h-4 w-4" />Words learned: {s.wordsLearned.length} · {languageName(s.learningLanguage)}
                     </p>
                   )}
                   {s.characters.length > 0 && (

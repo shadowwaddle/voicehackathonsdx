@@ -1,7 +1,10 @@
 // Shared contract between Lane A (UI) and Lane B (voice/backend).
 // Both lanes depend on this file: log every change in PROGRESS.md.
 
-export const GENRES = ["fantasy", "space", "jungle", "ocean", "detective", "dinosaurs"] as const;
+export const GENRES = [
+  "fantasy", "space", "jungle", "ocean", "detective", "dinosaurs",
+  "fairytale", "pirates", "robots", "superheroes", "time_travel", "arctic", "desert", "farm", "circus", "candy_land", "sky_islands", "tiny_world", "friendly_ghosts", "inventors", "sports", "music", "mythology", "wild_west", "dream_world", "museum", "train_journey", "toy_box", "garden", "volcano_island",
+] as const;
 export type Genre = (typeof GENRES)[number];
 
 export const MAX_MINUTES_OPTIONS = [5, 10, 15, 20, 30] as const;
@@ -28,7 +31,7 @@ export interface LearnedWord {
 
 /** Parent settings, stored in localStorage on the device only. */
 export interface ParentSettings {
-  childAge: number; // 4-9
+  childAge: number; // 4-10
   allowedGenres: Genre[];
   maxMinutes: number; // one of MAX_MINUTES_OPTIONS
   soundEffects: boolean;
