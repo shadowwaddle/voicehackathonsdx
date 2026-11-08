@@ -2,16 +2,17 @@
 
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
-- shadowwaddle (Lane A, UI): A1 shell + Home, A2 /parents, A3 WatercolorCanvas, A4 Story screen + useVoiceAgent.mock.ts
+- shadowwaddle (Lane A, UI): A1-A4 done; waiting on Daytona network to build and test
 - sthavir007: Lane B: hooks/useVoiceAgent.ts (moved out of app/story/page.tsx), set_scene + play_sound client tools, /api/sfx, watercolor storybook HTML, scripts/test-storybook.ts
 
 ## To do
-- [ ] Install and run in Daytona (private repo: the sandbox needs a GitHub token)
+- [ ] Daytona sandbox has no internet, so npm install fails. Fix the account network setting, then build and run
 - [x] Idea picked: Birbal (kid-safe storytelling voice app)
 - [ ] ElevenLabs agent setup in the dashboard (Lane B)
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- shadowwaddle: A4 done: `app/story/page.tsx` (watercolor background, speaker name, time ring, tap-to-start, listening/speaking indicator, captions toggle, end button, storybook modal with QR, saves the story) and `hooks/useVoiceAgent.mock.ts`. To go live, change the one import line in `app/story/page.tsx` to `@/hooks/useVoiceAgent`. **Not built yet:** the dev sandbox has no outbound internet (DNS fails, connections reset), so `npm install` hangs. This blocks Lane B too: storybook sandboxes can't install anything either.
 - shadowwaddle: A3 done: `components/WatercolorCanvas.tsx` with props `scene`, `volume`. The speaker blob is matched by `scene.speaker` against `scene.characters[].name`, ignoring case, and up to 4 characters are shown. Lane B: send `palette` as hex strings.
 - shadowwaddle: A2 done: `/parents` with PIN gate, age slider, genre chips, time limit (5/10/15/20/30), sound toggle, change PIN (enter twice) and clear saved stories.
 - shadowwaddle: A1 done: app shell, Home, `hooks/useParentSettings.ts` (defaults: age 6, all genres, 15 min, sound on, PIN 1234), `hooks/useSavedStories.ts`, `lib/genres.ts`. Added `qrcode.react` to package.json. `app/story/page.tsx` is broken until A4 replaces it.
