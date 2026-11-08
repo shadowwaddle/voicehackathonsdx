@@ -12,7 +12,8 @@ import { GENRE_INFO } from "@/lib/genres";
 import { buildBirbalSession } from "@/lib/birbal/prompt";
 import { makeSpark } from "@/lib/birbal/spark";
 import { storyCard } from "@/lib/birbal/stories";
-import { SESSION_MINUTES, STOP_UPDATE, dueCues, shouldHardStop, wantsToStop } from "@/lib/birbal/timeline";
+import { bookFromSession } from "@/lib/birbal/fallbackBook";
+import { SESSION_MINUTES, STOP_GRACE_MS, STOP_UPDATE, dueCues, saidStopBirbal, shouldHardStop } from "@/lib/birbal/timeline";
 import { useSceneDirector } from "@/lib/birbal/useSceneDirector";
 import { useReports } from "@/hooks/useReports";
 
@@ -45,6 +46,8 @@ export function useVoiceAgent(): VoiceAgent {
   const started = useRef(false);
   const sentCues = useRef(new Set<string>());
   const stopSent = useRef(false);
+  const stopTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const book = useRef<"none" | "making" | "done">("none");
   const soundEffects = useRef(false);
   const language = useRef<LearningLanguage>("off");
   const learned = useRef<LearnedWord[]>([]); // mirrors learnedWords for tool handlers
@@ -74,7 +77,34 @@ export function useVoiceAgent(): VoiceAgent {
     lines.current = [];
     conversationId.current = null;
     setTranscript([]);
-    if (report) saveReport.current(report);
+    saveReport.current(report);
+  }, []);
+
+  // Two tries, and the server falls back to its own page if Daytona is down.
+  const sendBook = useCallback(async (body: object) => {
+    book.current = "making";
+    setStorybookLoading(true);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("/api/storybook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) continue;
+        const made = (await res.json()) as StorybookResult;
+        setStorybook({ ...made, url: new URL(made.url, window.location.origin).href });
+        book.current = "done";
+        setStorybookLoading(false);
+        return true;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    book.current = "none";
+    setStorybookLoading(false);
+    setError("We couldn't make the storybook this time.");
+    return false;
   }, []);
 
   const conversation = useConversation({
@@ -85,6 +115,12 @@ export function useVoiceAgent(): VoiceAgent {
       if (!started.current) return;
       started.current = false;
       setEnded(true);
+      clearTimeout(stopTimer.current);
+      // However the story ended, there is always a storybook. Must run before the transcript is cleared.
+      if (book.current === "none") {
+        const s = session.current;
+        void sendBook(bookFromSession({ title: s.title, genre: s.genre, lines: lines.current, scenes: director.scenesSeen(), words: learned.current }));
+      }
       void finishSession();
     },
     onError: (e: unknown) => setError(typeof e === "string" ? e : "Birbal lost the connection."),
@@ -98,10 +134,11 @@ export function useVoiceAgent(): VoiceAgent {
       lines.current = [...lines.current, line];
       setTranscript((prev) => [...prev, line]);
       director.fromLine(text);
-      // Backup for the prompt's stop rule.
-      if (role === "child" && !stopSent.current && wantsToStop(text)) {
+      // Backup for the prompt's code word, with a deadline in case the goodbye never comes.
+      if (role === "child" && !stopSent.current && saidStopBirbal(text)) {
         stopSent.current = true;
         live.current.sendContextualUpdate(STOP_UPDATE);
+        stopTimer.current = setTimeout(() => void live.current.endSession(), STOP_GRACE_MS);
       }
     },
   });
@@ -135,6 +172,8 @@ export function useVoiceAgent(): VoiceAgent {
     setElapsedSeconds(0);
     sentCues.current = new Set();
     stopSent.current = false;
+    clearTimeout(stopTimer.current);
+    book.current = "none";
     soundEffects.current = settings.soundEffects;
     language.current = learningLanguage;
     learned.current = [];
@@ -183,24 +222,14 @@ export function useVoiceAgent(): VoiceAgent {
           if (typeof p.title === "string" && p.title) session.current.title = p.title;
           session.current.puzzles = Array.isArray(p.puzzles_solved) ? p.puzzles_solved.length : 0;
           session.current.hints = typeof p.hintsUsed === "number" ? p.hintsUsed : 0;
-          setStorybookLoading(true);
-          try {
-            const res = await fetch("/api/storybook", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              // Always include the words taught this session, plus any extra the agent listed.
-              body: JSON.stringify({ ...params, wordsLearned: mergeWords(learned.current, params?.wordsLearned) }),
-            });
-            if (!res.ok) throw new Error(`storybook ${res.status}`);
-            setStorybook((await res.json()) as StorybookResult);
-            return "Storybook ready";
-          } catch (e) {
-            console.error(e);
-            setError("We couldn't make the storybook this time.");
-            return "The storybook could not be made. Say sorry kindly and say goodbye.";
-          } finally {
-            setStorybookLoading(false);
-          }
+          // Always include the words taught this session, plus any extra the agent listed.
+          const made = await sendBook({
+            ...params,
+            title: session.current.title,
+            genre: session.current.genre,
+            wordsLearned: mergeWords(learned.current, params?.wordsLearned),
+          });
+          return made ? "Storybook ready" : "The storybook could not be made. Say sorry kindly and say goodbye.";
         },
         teach_word: (params) => {
           if (language.current === "off") return "language learning is off for this story";
@@ -234,7 +263,10 @@ export function useVoiceAgent(): VoiceAgent {
     });
   }, []);
 
-  useEffect(() => () => clearTimeout(wordTimer.current), []);
+  useEffect(() => () => {
+    clearTimeout(wordTimer.current);
+    clearTimeout(stopTimer.current);
+  }, []);
 
   // Session clock.
   useEffect(() => {

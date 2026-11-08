@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle: Parent Dashboard done (D1-D3). The files are free again.
-- sthavir007: Guaranteed storybook, Stop Birbal code word, reports for any session length. Editing the voice hooks, `lib/scoring`, `/api/report`, `/api/storybook`, dashboard tabs.
+- sthavir007: —
 
 ## To do (proposed tracks for the rest of the hackathon)
 **Track A, shadowwaddle (app + demo):**
@@ -24,6 +24,8 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- sthavir007: Storybook always generates (agent, then end-of-session backup, then an app-served page if Daytona fails). Dashboard reports for any length: under 30s is a "Quick chat" with a plain-English summary and no score or trends. Only "Stop Birbal" ends a story early. Agent: sound can't interrupt Birbal, background voice filter on, `skip_turn` for noise. Birbal only speaks foreign words he has taught.
+  - **Important:** an app hosted inside a Daytona sandbox can create other sandboxes but can't upload to them (`read ECONNRESET`), so real Daytona storybooks and sandbox scoring only work when the app runs outside Daytona. Fallbacks cover it.
 - sthavir007: Improvements pass. Birbal's prompt and first message now live in `lib/birbal/prompt.ts` and are sent as session overrides (enabled on the agent). 10 story cards in `lib/birbal/stories.ts`; `GENRES` stays in the contract so old saved stories load. Random story spark, timed beat cues, 5-minute limit forced (setting removed), stop-phrase backup, keyword-driven colors with `?debug=1` overlay. Typecheck, `scripts/test-birbal.ts`, build and a full mock story pass.
 - sthavir007: Tested Language Adventure end to end. Live voice conversations (6 turns each, none + es/fr/zh/hi/ja) and a real-browser run on `29b624b` (22/22). All 5 languages teach words via `teach_word`, understand the child speaking that language, and the app sends the right `learning_language`. Median reply 1.2s, 25/36 turns under 1.5s; the first story reply is about 3s.
   - **Agent changes:** `reasoning_effort: low` (`none` made the model emit broken `<CHARACTER>` tags in voice mode), `turn_eagerness: patient`, `turn_timeout: 15`, one 1.2s "Hmm!" filler. Birbal is narrator only and the child is unnamed. No mid-sentence cut-offs in testing after this.

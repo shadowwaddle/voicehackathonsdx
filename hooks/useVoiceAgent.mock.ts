@@ -1,12 +1,13 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
-  AgentStatus, Genre, LearnedWord, LearningLanguage, ReportRequest, Scene, SessionReport, StartOptions,
+  AgentStatus, Genre, LearnedWord, LearningLanguage, ReportRequest, Scene, StartOptions,
   StorybookResult, TranscriptLine, VoiceAgent,
 } from "@/types/contract";
 import { submitReport } from "@/lib/scoring/submit";
 import { pickOpening } from "@/lib/greetings";
 import { GENRE_INFO } from "@/lib/genres";
+import { bookFromSession } from "@/lib/birbal/fallbackBook";
 import { makeSpark } from "@/lib/birbal/spark";
 import { SESSION_SECONDS } from "@/lib/birbal/timeline";
 import { useSceneDirector } from "@/lib/birbal/useSceneDirector";
@@ -79,6 +80,8 @@ export function useVoiceAgent(): VoiceAgent {
   const [volume, setVolume] = useState(0);
   const [transcript, setTranscript] = useState<TranscriptLine[]>([]);
   const director = useSceneDirector();
+  const { scenesSeen } = director;
+  const bookMade = useRef(false);
   const [elapsedSeconds, setElapsed] = useState(0);
   const [storybook, setStorybook] = useState<StorybookResult | null>(null);
   const [storybookLoading, setStorybookLoading] = useState(false);
@@ -92,8 +95,7 @@ export function useVoiceAgent(): VoiceAgent {
   const saveReport = useRef(addReport);
   saveReport.current = addReport;
 
-  // Same end-of-story flow as the real hook. Without a Daytona key the server can't
-  // score, so fall back to a local report clearly marked as demo data.
+  // Same end-of-story flow as the real hook; reports are marked as demo data.
   const finishSession = useCallback(async () => {
     const s = session.current;
     if (s.reported) return;
@@ -108,10 +110,10 @@ export function useVoiceAgent(): VoiceAgent {
       genre: s.genre,
       durationSeconds: Math.round((Date.now() - s.startedAt) / 1000),
     };
-    const report = (await submitReport(req)) ?? demoReport(req);
+    const report = { ...(await submitReport(req)), demo: true };
     lines.current = [];
     setTranscript([]);
-    if (report) saveReport.current(report);
+    saveReport.current(report);
   }, []);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -139,8 +141,22 @@ export function useVoiceAgent(): VoiceAgent {
     clearAll();
     setVolume(0);
     setStatus("ended");
+    // Ended early: same guaranteed storybook as the real hook.
+    if (!bookMade.current) {
+      bookMade.current = true;
+      setStorybookLoading(true);
+      const s = session.current;
+      const body = bookFromSession({ title: s.title, genre: s.genre, lines: lines.current, scenes: scenesSeen(), words: [] });
+      try {
+        const res = await fetch("/api/storybook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const made = (await res.json()) as StorybookResult;
+        setStorybook({ ...made, url: new URL(made.url, window.location.origin).href });
+      } finally {
+        setStorybookLoading(false);
+      }
+    }
     void finishSession();
-  }, [clearAll, finishSession]);
+  }, [clearAll, finishSession, scenesSeen]);
 
   const start = useCallback(
     async ({ genre, settings, returningCharacters, learningLanguage = "off", recentTitles = [] }: StartOptions) => {
@@ -148,9 +164,10 @@ export function useVoiceAgent(): VoiceAgent {
       live.current = true;
       setTranscript([]);
       lines.current = [];
-      session.current = { genre, startedAt: Date.now(), title: "", puzzles: 0, words: 0, reported: false };
       setStorybook(null);
       const title = makeSpark(genre, recentTitles).title;
+      session.current = { genre, startedAt: Date.now(), title, puzzles: 0, words: 0, reported: false };
+      bookMade.current = false;
       director.reset(GENRE_INFO[genre].label);
       setElapsed(0);
       setLearnedWords([]);
@@ -194,6 +211,7 @@ export function useVoiceAgent(): VoiceAgent {
             });
             later(at + 3000, () => {
               setStorybookLoading(false);
+              bookMade.current = true;
               session.current.title = title;
               session.current.puzzles = 1;
               setStorybook({ url: "https://example.com/birbal-storybook", title });
@@ -233,35 +251,5 @@ export function useVoiceAgent(): VoiceAgent {
   return {
     status, volume, transcript, scene: director.scene, sceneDebug: director.debug, elapsedSeconds, storybook, storybookLoading, error,
     learnedWords, currentWord, start, stop,
-  };
-}
-
-/** Local stand-in report for mock mode when /api/report is unavailable. */
-function demoReport(req: ReportRequest): SessionReport | null {
-  const child = req.transcript.filter((l) => l.role === "child");
-  if (child.length === 0) return null;
-  const count = (t: string) => t.split(/\s+/).filter(Boolean).length;
-  const childWords = child.reduce((n, l) => n + count(l.text), 0);
-  const allWords = req.transcript.reduce((n, l) => n + count(l.text), 0);
-  return {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    storyTitle: req.storyTitle,
-    genre: req.genre,
-    durationSeconds: req.durationSeconds,
-    thinkingScore: 58,
-    metrics: {
-      talkShare: Math.round((childWords / Math.max(1, allWords)) * 1000) / 1000,
-      avgAnswerWords: Math.round((childWords / child.length) * 10) / 10,
-      originalIdeas: 2,
-      reasoningAnswers: 1,
-      questionsAsked: 1,
-      puzzlesSolved: req.puzzlesSolved,
-      hintsUsed: req.hintsUsed,
-      wordsLearned: req.wordsLearned,
-      childTurns: child.length,
-    },
-    deletion: { audio: "skipped", transcript: "skipped", sandbox: "failed", at: new Date().toISOString() },
-    demo: true,
   };
 }

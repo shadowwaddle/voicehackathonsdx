@@ -163,10 +163,12 @@ export interface SessionReport {
   deletion: {
     audio: DeletionStatus;
     transcript: DeletionStatus;
-    sandbox: "destroyed" | "failed";
+    sandbox: "destroyed" | "failed" | "skipped"; // skipped: too short to need one
     at: string;
   };
   demo?: boolean; // sample/mock data: nothing was recorded, nothing to delete
+  short?: boolean; // under 30 seconds: listed, but no Thinking Score or trends
+  summary?: string; // plain-English account of the session, from the numbers only
 }
 
 /** Body of POST /api/report. */

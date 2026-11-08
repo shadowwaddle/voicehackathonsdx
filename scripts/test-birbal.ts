@@ -4,7 +4,9 @@ import { STORY_CARDS, STORY_GENRES } from "../lib/birbal/stories";
 import { makeSpark } from "../lib/birbal/spark";
 import { buildBirbalSession } from "../lib/birbal/prompt";
 import { sceneFromText, applyMatch } from "../lib/birbal/sceneFromText";
-import { CUES, dueCues, shouldHardStop, wantsToStop } from "../lib/birbal/timeline";
+import { CUES, dueCues, saidStopBirbal, shouldHardStop } from "../lib/birbal/timeline";
+import { bookFromSession } from "../lib/birbal/fallbackBook";
+import { buildReport, describeSession, localMetrics, localScore } from "../lib/scoring/localScore";
 
 assert.equal(STORY_CARDS.length, 10);
 assert.equal(new Set(STORY_GENRES).size, 10);
@@ -25,6 +27,8 @@ const off = buildBirbalSession({ ...base, learningLanguage: "off" });
 const es = buildBirbalSession({ ...base, learningLanguage: "es", reviewWords: [{ word: "luz", translation: "light", emoji: "x", language: "es" }] });
 assert.ok(off.firstMessage.includes(spark.title), "first message announces title");
 assert.ok(!off.prompt.includes("LANGUAGE ADVENTURE"));
+assert.ok(off.prompt.includes("Speak English only"), "no stray languages");
+assert.ok(es.prompt.includes("Only ever say Spanish words you have taught"), "taught words only");
 assert.ok(es.prompt.includes("LANGUAGE ADVENTURE: Spanish") && es.prompt.includes("luz (light)"));
 for (const part of [spark.title, spark.setting, spark.deadline, spark.twist, "Old One", "teach_word" ]) assert.ok(es.prompt.includes(part), part);
 for (const rule of ["set_scene", "play_sound", "make_storybook", "personal information", "once every three turns", "Beat 4"]) assert.ok(off.prompt.includes(rule), rule);
@@ -55,7 +59,27 @@ assert.equal(shouldHardStop(300, true), false, "lets the goodbye finish");
 assert.equal(shouldHardStop(300, false), true);
 assert.equal(shouldHardStop(320, true), true, "20s grace at most");
 
-for (const yes of ["I'm done", "stop", "Stop!", "I want to stop", "bye", "no more", "I'm tired.", "I’m done", "okay stop", "goodbye Birbal"]) assert.ok(wantsToStop(yes), yes);
-for (const no of ["stop the robot!", "don't stop", "goodbye dragon, let's go", "I'm tired of this door, open it", "there are no more clues here", "by the river"]) assert.ok(!wantsToStop(no), no);
+for (const yes of ["Stop Birbal", "stop birbal!", "Stop, Birbal.", "please STOP BIRBAL now", "stop burble"]) assert.ok(saidStopBirbal(yes), yes);
+for (const no of ["stop", "I'm done", "bye", "no more", "I'm tired", "stop the robot!", "hey Birbal", "honey please stop that", ""]) assert.ok(!saidStopBirbal(no), no);
+
+const empty = bookFromSession({ title: "T", genre: "space", lines: [], scenes: [], words: [] });
+assert.ok(empty.title === "T" && empty.summary.length > 20, "storybook from an empty session");
+const told = bookFromSession({ title: "T", genre: "space", scenes: [], words: [], lines: [
+  { role: "birbal", text: "Hello!" }, { role: "child", text: "Let us go there" }, { role: "birbal", text: "[excited] You run to the door." }] });
+assert.equal(told.summary, "You run to the door.");
+assert.deepEqual(told.choices, ["Let us go there"]);
+
+const req = { transcript: [] as { role: "child" | "birbal"; text: string }[], puzzlesSolved: 0, hintsUsed: 0, wordsLearned: 0, conversationId: null, storyTitle: "S", genre: "space" as const, durationSeconds: 1 };
+const del = { audio: "skipped", transcript: "skipped", sandbox: "skipped", at: "" } as const;
+const none = buildReport(req, localMetrics(req), 0, del);
+assert.ok(none.short && none.summary?.includes("1 second"), "1-second silent chat gets a report");
+const chat = { ...req, durationSeconds: 12, transcript: [{ role: "birbal" as const, text: "Which door?" }, { role: "child" as const, text: "why is the blue door humming because maybe magic?" }] };
+const quick = buildReport(chat, localMetrics(chat), 50, del);
+assert.equal(quick.thinkingScore, 0, "under 30s has no score");
+assert.ok(quick.summary?.includes("1 reply") && quick.summary.includes("1 question") && quick.summary.includes("30 seconds"), String(quick.summary));
+const long = { ...chat, durationSeconds: 200 };
+const full = buildReport(long, localMetrics(long), localScore(localMetrics(long)), del);
+assert.ok(!full.short && full.thinkingScore > 0 && full.summary?.includes("3 minutes 20 seconds"), String(full.summary));
+assert.ok(!describeSession(long, localMetrics(long)).includes("door"), "never quotes the child");
 
 console.log("birbal logic: all checks passed");

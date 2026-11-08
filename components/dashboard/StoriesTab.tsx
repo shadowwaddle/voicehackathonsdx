@@ -21,8 +21,9 @@ export function StoriesTab({ reports }: { reports: SessionReport[] }) {
                   {g?.label ?? r.genre} · {formatDate(r.createdAt)} · {formatDuration(r.durationSeconds)}
                   {r.demo && <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">sample</span>}
                 </div>
+                {r.summary && <p className="mt-0.5 text-sm text-muted">{r.summary}</p>}
               </div>
-              <span className="rounded-full bg-[#eef6f4] px-3 py-1 font-display text-lg font-semibold tabular-nums text-[#1f5f57]">{r.thinkingScore}</span>
+              <span className="shrink-0 rounded-full bg-[#eef6f4] px-3 py-1 font-display text-lg font-semibold tabular-nums text-[#1f5f57]">{r.short ? "Quick" : r.thinkingScore}</span>
             </li>
           );
         })}

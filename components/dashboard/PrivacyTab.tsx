@@ -48,7 +48,7 @@ export function PrivacyTab({ reports, onDeleteEverything }: { reports: SessionRe
                   <ul className="mt-1.5 space-y-0.5">
                     <Row ok={r.deletion.audio === "deleted"} skipped={r.deletion.audio === "skipped"} text={recording(r.deletion.audio, "Audio")} />
                     <Row ok={r.deletion.transcript === "deleted"} skipped={r.deletion.transcript === "skipped"} text={recording(r.deletion.transcript, "Transcript")} />
-                    <Row ok={r.deletion.sandbox === "destroyed"} text={r.deletion.sandbox === "destroyed" ? "Scoring sandbox destroyed" : "Scoring sandbox: delete failed (it removes itself once stopped)"} />
+                    <Row ok={r.deletion.sandbox === "destroyed"} skipped={r.deletion.sandbox === "skipped"} text={r.deletion.sandbox === "destroyed" ? "Scoring sandbox destroyed" : "Scoring sandbox: delete failed (it removes itself once stopped)"} />
                   </ul>
                 )}
               </li>

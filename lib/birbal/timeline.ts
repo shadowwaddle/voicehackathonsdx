@@ -16,7 +16,8 @@ export const CUES: Cue[] = [
 ];
 
 export const STOP_UPDATE =
-  "The child wants to stop. Immediately give a two-sentence happy ending, call make_storybook, and say goodbye.";
+  "The child said Stop Birbal. Immediately give a two-sentence happy ending, call make_storybook, and say goodbye.";
+export const STOP_GRACE_MS = 25000; // ends the call if the goodbye never comes
 
 export const dueCues = (elapsed: number, sent: ReadonlySet<string>) =>
   CUES.filter((c) => elapsed >= c.at && !sent.has(c.key));
@@ -25,11 +26,9 @@ export const dueCues = (elapsed: number, sent: ReadonlySet<string>) =>
 export const shouldHardStop = (elapsed: number, speaking: boolean) =>
   elapsed >= SESSION_SECONDS + GOODBYE_GRACE_SECONDS || (elapsed >= SESSION_SECONDS && !speaking);
 
-const WHOLE = /^(ok(ay)? |please )?(stop|bye|bye bye|goodbye|no more|i'?m done|i am done|i'?m tired|i am tired|i want to stop)( please| now| birbal)?$/;
-const WITHIN = /\b(i want to stop|i wanna stop|i'?m done now|i am done now|i'?m tired now|stop the story|no more story|goodbye birbal|bye birbal)\b/;
+const CODE_WORD = /\bstop (bir ?bal|birble|burble|beer ?ball|bear ?ball|verbal|herbal|bribal)\b/;
 
-/** Backup for the prompt rule. Short utterances only, so "stop the robot!" stays in the story. */
-export function wantsToStop(text: string): boolean {
-  const t = text.toLowerCase().replace(/[’]/g, "'").replace(/[^a-z' ]+/g, " ").replace(/\s+/g, " ").trim();
-  return WHOLE.test(t) || WITHIN.test(t);
+/** Only "Stop Birbal" ends a story early, so coughs and grown-ups chatting can't. */
+export function saidStopBirbal(text: string): boolean {
+  return CODE_WORD.test(text.toLowerCase().replace(/[^a-z ]+/g, " ").replace(/\s+/g, " ").trim());
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { GENRES, type ReportRequest, type SessionReport } from "@/types/contract";
+import { GENRES, type ReportRequest } from "@/types/contract";
 import { runScoring } from "@/lib/scoring/runScoring";
 import { deleteConversation } from "@/lib/scoring/deleteConversation";
+import { MIN_SCORED_SECONDS, buildReport, localMetrics, localScore } from "@/lib/scoring/localScore";
 
 // Scores a finished story in a throwaway Daytona sandbox, deletes the ElevenLabs
 // conversation, and returns only numbers. The transcript is never logged or stored here.
@@ -37,25 +38,15 @@ export async function POST(req: Request) {
   if (typeof input === "string") return NextResponse.json({ error: input }, { status: 400 });
 
   const { transcript, puzzlesSolved, hintsUsed, wordsLearned } = input;
+  // Very short chats and silent ones need no sandbox.
+  const worthScoring = input.durationSeconds >= MIN_SCORED_SECONDS && transcript.some((l) => l.role === "child");
   // Score and delete in parallel: deletion must not wait on (or depend on) scoring.
   const [scored, conversation] = await Promise.all([
-    runScoring({ transcript, puzzlesSolved, hintsUsed, wordsLearned }),
+    worthScoring ? runScoring({ transcript, puzzlesSolved, hintsUsed, wordsLearned }) : null,
     deleteConversation(input.conversationId),
   ]);
-  const deletion = { audio: conversation, transcript: conversation, sandbox: scored.sandbox, at: new Date().toISOString() };
-
-  if (!scored.metrics || scored.thinkingScore === null) {
-    return NextResponse.json({ error: "Could not score this story.", deletion }, { status: 502 });
-  }
-  const report: SessionReport = {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    storyTitle: input.storyTitle,
-    genre: input.genre,
-    durationSeconds: input.durationSeconds,
-    thinkingScore: scored.thinkingScore,
-    metrics: scored.metrics,
-    deletion,
-  };
-  return NextResponse.json(report);
+  const metrics = scored?.metrics ?? localMetrics(input);
+  const score = scored?.thinkingScore ?? localScore(metrics);
+  const deletion = { audio: conversation, transcript: conversation, sandbox: scored?.sandbox ?? ("skipped" as const), at: new Date().toISOString() };
+  return NextResponse.json(buildReport(input, metrics, score, deletion));
 }

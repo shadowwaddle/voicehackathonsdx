@@ -19,7 +19,8 @@ export function OverviewTab({ reports }: { reports: SessionReport[] }) {
       </Panel>
     );
   }
-  const prev = reports[reports.length - 2];
+  const scored = reports.filter((r) => !r.short);
+  const prev = latest.short ? undefined : scored[scored.length - 2];
   const delta = prev ? latest.thinkingScore - prev.thinkingScore : 0;
   const m = latest.metrics;
 
@@ -27,7 +28,7 @@ export function OverviewTab({ reports }: { reports: SessionReport[] }) {
     <div className="space-y-4">
       <Panel>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <ScoreRing score={latest.thinkingScore} />
+          {latest.short ? <QuickChat /> : <ScoreRing score={latest.thinkingScore} />}
           <div className="min-w-0 flex-1">
             <div className="text-sm text-muted">Latest story · {formatDate(latest.createdAt)}</div>
             <h2 className="mt-1 truncate font-display text-2xl font-semibold">{latest.storyTitle}</h2>
@@ -43,7 +44,8 @@ export function OverviewTab({ reports }: { reports: SessionReport[] }) {
             )}
           </div>
         </div>
-        <p className="mt-6 rounded-2xl bg-[#eef6f4] px-4 py-3 text-[#1f5f57]">{insight(reports)}</p>
+        <p className="mt-6 rounded-2xl bg-[#eef6f4] px-4 py-3 text-[#1f5f57]">{latest.short ? latest.summary : insight(scored)}</p>
+        {!latest.short && latest.summary && <p className="mt-3 text-sm text-muted">{latest.summary}</p>}
       </Panel>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -52,6 +54,14 @@ export function OverviewTab({ reports }: { reports: SessionReport[] }) {
         <Stat label="Reasoning answers" value={m.reasoningAnswers} hint={`"because", "maybe", "I think"…`} />
         <Stat label="Words learned" value={m.wordsLearned} hint="Language Adventure" />
       </div>
+    </div>
+  );
+}
+
+function QuickChat() {
+  return (
+    <div className="grid h-36 w-36 shrink-0 place-items-center self-center rounded-full border-[10px] border-[#efeae3] text-center">
+      <div className="font-display text-xl font-semibold leading-tight">Quick<br />chat</div>
     </div>
   );
 }

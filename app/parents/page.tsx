@@ -83,7 +83,7 @@ export default function ParentsPage() {
             </div>
             <Tabs tabs={TABS} value={tab} onChange={setTab} />
             {tab === "Overview" && <OverviewTab reports={sorted} />}
-            {tab === "Progress" && <ProgressTab reports={sorted} />}
+            {tab === "Progress" && <ProgressTab reports={sorted.filter((r) => !r.short)} />}
             {tab === "Stories" && <StoriesTab reports={sorted} />}
             {tab === "Privacy" && <PrivacyTab reports={sorted} onDeleteEverything={deleteEverything} />}
             {tab === "Settings" && (
