@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle: Parent Dashboard done (D1-D3). The files are free again.
-- sthavir007: —
+- sthavir007: Improvements pass: prompt in code (`lib/birbal/`), 10 story cards, spark, story beats, 5-minute limit, keyword colors. Editing the voice hooks, `WatercolorCanvas`, `app/story`, `app/page`, `app/parents`, SettingsTab, GenreCard.
 
 ## To do (proposed tracks for the rest of the hackathon)
 **Track A, shadowwaddle (app + demo):**
