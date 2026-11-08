@@ -3,10 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
 import {
   LEARNING_LANGUAGES,
-  type AgentStatus, type LearnedWord, type LearningLanguage, type Scene, type StartOptions,
+  type AgentStatus, type Genre, type LearnedWord, type LearningLanguage, type Scene, type StartOptions,
   type StorybookResult, type TranscriptLine, type VoiceAgent,
 } from "@/types/contract";
 import { parseScene } from "@/lib/scene";
+import { submitReport } from "@/lib/scoring/submit";
+import { useReports } from "@/hooks/useReports";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
 const WORD_MS = 6000;
@@ -41,12 +43,43 @@ export function useVoiceAgent(): VoiceAgent {
   const language = useRef<LearningLanguage>("off");
   const learned = useRef<LearnedWord[]>([]); // mirrors learnedWords for tool handlers
   const wordTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // End-of-story report: kept in refs, the transcript is cleared once it has been scored.
+  const conversationId = useRef<string | null>(null);
+  const lines = useRef<TranscriptLine[]>([]);
+  const session = useRef({ genre: "fantasy" as Genre, startedAt: 0, title: "", puzzles: 0, hints: 0 });
+  const { addReport } = useReports();
+  const saveReport = useRef(addReport);
+  saveReport.current = addReport;
+
+  const finishSession = useCallback(async () => {
+    const s = session.current;
+    const transcript = lines.current.map(({ role, text }) => ({ role, text }));
+    const report = await submitReport({
+      transcript,
+      puzzlesSolved: s.puzzles,
+      hintsUsed: s.hints,
+      wordsLearned: learned.current.length,
+      conversationId: conversationId.current,
+      storyTitle: s.title,
+      genre: s.genre,
+      durationSeconds: Math.round((Date.now() - s.startedAt) / 1000),
+    });
+    // Processed, never kept: drop the words now that they've been scored.
+    lines.current = [];
+    conversationId.current = null;
+    setTranscript([]);
+    if (report) saveReport.current(report);
+  }, []);
 
   const conversation = useConversation({
+    onConnect: (props?: { conversationId?: string }) => {
+      conversationId.current = props?.conversationId ?? live.current.getId?.() ?? null;
+    },
     onDisconnect: () => {
       if (!started.current) return;
       started.current = false;
       setEnded(true);
+      void finishSession();
     },
     onError: (e: unknown) => setError(typeof e === "string" ? e : "Birbal lost the connection."),
     onMessage: (raw) => {
@@ -54,7 +87,10 @@ export function useVoiceAgent(): VoiceAgent {
       const m = raw as { message: string; source?: string; role?: string };
       const role = m.source === "ai" || m.role === "agent" ? "birbal" : "child";
       const text = m.message.replace(/<\/?[\w-]+>/g, "").trim(); // multi-voice tags
-      if (text) setTranscript((prev) => [...prev, { id: crypto.randomUUID(), role, text }]);
+      if (!text) return;
+      const line: TranscriptLine = { id: crypto.randomUUID(), role, text };
+      lines.current = [...lines.current, line];
+      setTranscript((prev) => [...prev, line]);
     },
   });
   // The hook returns a new object on most renders; effects read it through this ref.
@@ -73,6 +109,9 @@ export function useVoiceAgent(): VoiceAgent {
     setError(null);
     setEnded(false);
     setTranscript([]);
+    lines.current = [];
+    conversationId.current = null;
+    session.current = { genre, startedAt: Date.now(), title: "", puzzles: 0, hints: 0 };
     setScene(null);
     setStorybook(null);
     setElapsedSeconds(0);
@@ -120,6 +159,10 @@ export function useVoiceAgent(): VoiceAgent {
               .filter((w): w is LearnedWord => !!w && !seen.has(w.word.toLowerCase()));
             return language.current === "off" ? [] : [...have, ...more].slice(0, 12);
           };
+          const p = (params ?? {}) as { title?: unknown; puzzles_solved?: unknown; hintsUsed?: unknown };
+          session.current.title = typeof p.title === "string" ? p.title : "";
+          session.current.puzzles = Array.isArray(p.puzzles_solved) ? p.puzzles_solved.length : 0;
+          session.current.hints = typeof p.hintsUsed === "number" ? p.hintsUsed : 0;
           setStorybookLoading(true);
           try {
             const res = await fetch("/api/storybook", {

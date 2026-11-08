@@ -37,6 +37,7 @@ export interface ParentSettings {
   soundEffects: boolean;
   pin: string; // 4 digits
   learningLanguage: LearningLanguage;
+  consentAt?: string; // ISO time a parent accepted the privacy flow; no stories before this
 }
 
 export type Mood = "calm" | "happy" | "mysterious" | "exciting" | "silly";
@@ -65,6 +66,7 @@ export interface StorybookRequest {
   characters: SceneCharacter[];
   scenes: Scene[];
   wordsLearned?: LearnedWord[];
+  hintsUsed?: number; // hints Birbal gave; fewer hints = higher problem-solving score
 }
 
 /** Response of POST /api/storybook. */
@@ -123,4 +125,49 @@ export interface VoiceAgent {
   currentWord: LearnedWord | null; // set for ~6s after teach_word
   start(opts: StartOptions): Promise<void>;
   stop(): Promise<void>;
+}
+
+/** Numbers computed from one story's transcript by lib/scoring/score.py. */
+export interface SessionMetrics {
+  talkShare: number; // 0-1, child words / all words
+  avgAnswerWords: number;
+  originalIdeas: number;
+  reasoningAnswers: number;
+  questionsAsked: number;
+  puzzlesSolved: number;
+  hintsUsed: number;
+  wordsLearned: number;
+  childTurns: number;
+}
+
+export type DeletionStatus = "deleted" | "failed" | "skipped";
+
+/** The only thing kept after a story: scores + deletion receipt. Stored on this device. */
+export interface SessionReport {
+  id: string;
+  createdAt: string;
+  storyTitle: string;
+  genre: Genre;
+  durationSeconds: number;
+  thinkingScore: number; // 0-100
+  metrics: SessionMetrics;
+  deletion: {
+    audio: DeletionStatus;
+    transcript: DeletionStatus;
+    sandbox: "destroyed" | "failed";
+    at: string;
+  };
+  demo?: boolean; // sample/mock data: nothing was recorded, nothing to delete
+}
+
+/** Body of POST /api/report. */
+export interface ReportRequest {
+  transcript: { role: TranscriptLine["role"]; text: string }[];
+  puzzlesSolved: number;
+  hintsUsed: number;
+  wordsLearned: number;
+  conversationId: string | null;
+  storyTitle: string;
+  genre: Genre;
+  durationSeconds: number;
 }

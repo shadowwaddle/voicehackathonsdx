@@ -1,8 +1,11 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
-  AgentStatus, LearnedWord, LearningLanguage, Scene, StartOptions, StorybookResult, TranscriptLine, VoiceAgent,
+  AgentStatus, Genre, LearnedWord, LearningLanguage, ReportRequest, Scene, SessionReport, StartOptions,
+  StorybookResult, TranscriptLine, VoiceAgent,
 } from "@/types/contract";
+import { submitReport } from "@/lib/scoring/submit";
+import { useReports } from "@/hooks/useReports";
 
 // Fake voice agent for building the UI without ElevenLabs.
 // Same interface as hooks/useVoiceAgent.ts (Lane B): swap the import to go live.
@@ -91,6 +94,34 @@ export function useVoiceAgent(): VoiceAgent {
   const [learnedWords, setLearnedWords] = useState<LearnedWord[]>([]);
   const [currentWord, setCurrentWord] = useState<LearnedWord | null>(null);
 
+  const lines = useRef<TranscriptLine[]>([]);
+  const session = useRef({ genre: "fantasy" as Genre, startedAt: 0, title: "", puzzles: 0, words: 0, reported: true });
+  const { addReport } = useReports();
+  const saveReport = useRef(addReport);
+  saveReport.current = addReport;
+
+  // Same end-of-story flow as the real hook. Without a Daytona key the server can't
+  // score, so fall back to a local report clearly marked as demo data.
+  const finishSession = useCallback(async () => {
+    const s = session.current;
+    if (s.reported) return;
+    s.reported = true;
+    const req: ReportRequest = {
+      transcript: lines.current.map(({ role, text }) => ({ role, text })),
+      puzzlesSolved: s.puzzles,
+      hintsUsed: 1,
+      wordsLearned: s.words,
+      conversationId: null, // nothing recorded by ElevenLabs in mock mode
+      storyTitle: s.title || "A mock mystery",
+      genre: s.genre,
+      durationSeconds: Math.round((Date.now() - s.startedAt) / 1000),
+    };
+    const report = (await submitReport(req)) ?? demoReport(req);
+    lines.current = [];
+    setTranscript([]);
+    if (report) saveReport.current(report);
+  }, []);
+
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const tick = useRef<ReturnType<typeof setInterval> | null>(null);
   const live = useRef(false);
@@ -104,20 +135,27 @@ export function useVoiceAgent(): VoiceAgent {
   }, []);
 
   const later = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms));
-  const say = (role: TranscriptLine["role"], text: string) =>
-    text && setTranscript((t) => [...t, { id: crypto.randomUUID(), role, text }]);
+  const say = (role: TranscriptLine["role"], text: string) => {
+    if (!text) return;
+    const line: TranscriptLine = { id: crypto.randomUUID(), role, text };
+    lines.current = [...lines.current, line];
+    setTranscript((t) => [...t, line]);
+  };
 
   const stop = useCallback(async () => {
     clearAll();
     setVolume(0);
     setStatus("ended");
-  }, [clearAll]);
+    void finishSession();
+  }, [clearAll, finishSession]);
 
   const start = useCallback(
     async ({ genre, settings, returningCharacters, learningLanguage = "off" }: StartOptions) => {
       clearAll();
       live.current = true;
       setTranscript([]);
+      lines.current = [];
+      session.current = { genre, startedAt: Date.now(), title: "", puzzles: 0, words: 0, reported: false };
       setStorybook(null);
       setElapsed(0);
       setLearnedWords([]);
@@ -149,6 +187,7 @@ export function useVoiceAgent(): VoiceAgent {
             later(at + 1500, () => {
               setCurrentWord(word);
               setLearnedWords((prev) => [...prev, word]);
+              session.current.words += 1;
             });
             later(at + 1500 + WORD_MS, () => setCurrentWord((c) => (c === word ? null : c)));
           }
@@ -160,6 +199,8 @@ export function useVoiceAgent(): VoiceAgent {
             });
             later(at + 3000, () => {
               setStorybookLoading(false);
+              session.current.title = "The Case of the Missing Honey Buns";
+              session.current.puzzles = 1;
               setStorybook({ url: "https://example.com/birbal-storybook", title: "The Case of the Missing Honey Buns" });
               void stop();
             });
@@ -197,5 +238,35 @@ export function useVoiceAgent(): VoiceAgent {
   return {
     status, volume, transcript, scene, elapsedSeconds, storybook, storybookLoading, error,
     learnedWords, currentWord, start, stop,
+  };
+}
+
+/** Local stand-in report for mock mode when /api/report is unavailable. */
+function demoReport(req: ReportRequest): SessionReport | null {
+  const child = req.transcript.filter((l) => l.role === "child");
+  if (child.length === 0) return null;
+  const count = (t: string) => t.split(/\s+/).filter(Boolean).length;
+  const childWords = child.reduce((n, l) => n + count(l.text), 0);
+  const allWords = req.transcript.reduce((n, l) => n + count(l.text), 0);
+  return {
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    storyTitle: req.storyTitle,
+    genre: req.genre,
+    durationSeconds: req.durationSeconds,
+    thinkingScore: 58,
+    metrics: {
+      talkShare: Math.round((childWords / Math.max(1, allWords)) * 1000) / 1000,
+      avgAnswerWords: Math.round((childWords / child.length) * 10) / 10,
+      originalIdeas: 2,
+      reasoningAnswers: 1,
+      questionsAsked: 1,
+      puzzlesSolved: req.puzzlesSolved,
+      hintsUsed: req.hintsUsed,
+      wordsLearned: req.wordsLearned,
+      childTurns: child.length,
+    },
+    deletion: { audio: "skipped", transcript: "skipped", sandbox: "failed", at: new Date().toISOString() },
+    demo: true,
   };
 }
