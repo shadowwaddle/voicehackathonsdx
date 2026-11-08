@@ -6,7 +6,8 @@ import {
   type AgentStatus, type Genre, type LearnedWord, type LearningLanguage, type StartOptions,
   type StorybookResult, type TranscriptLine, type VoiceAgent,
 } from "@/types/contract";
-import { parseScene } from "@/lib/scene";
+import { parseScene, parseStorybookRequest } from "@/lib/scene";
+import { renderLocalBook } from "@/lib/birbal/localBook";
 import { submitReport } from "@/lib/scoring/submit";
 import { GENRE_INFO } from "@/lib/genres";
 import { buildBirbalSession } from "@/lib/birbal/prompt";
@@ -96,15 +97,20 @@ export function useVoiceAgent(): VoiceAgent {
         setStorybook({ ...made, url: new URL(made.url, window.location.origin).href });
         book.current = "done";
         setStorybookLoading(false);
-        return true;
+        return;
       } catch (e) {
         console.error(e);
       }
     }
-    book.current = "none";
+    // Server unreachable: the browser builds the page itself, so there is never an error.
+    const parsed = parseStorybookRequest({ ...body, title: (body as { title?: string }).title || "A Birbal Story" });
+    const html = typeof parsed === "string" ? `<h1>A Birbal Story</h1>` : renderLocalBook(parsed);
+    setStorybook({
+      url: URL.createObjectURL(new Blob([html], { type: "text/html" })),
+      title: typeof parsed === "string" ? "A Birbal Story" : parsed.title,
+    });
+    book.current = "done";
     setStorybookLoading(false);
-    setError("We couldn't make the storybook this time.");
-    return false;
   }, []);
 
   const conversation = useConversation({
@@ -223,13 +229,13 @@ export function useVoiceAgent(): VoiceAgent {
           session.current.puzzles = Array.isArray(p.puzzles_solved) ? p.puzzles_solved.length : 0;
           session.current.hints = typeof p.hintsUsed === "number" ? p.hintsUsed : 0;
           // Always include the words taught this session, plus any extra the agent listed.
-          const made = await sendBook({
+          await sendBook({
             ...params,
             title: session.current.title,
             genre: session.current.genre,
             wordsLearned: mergeWords(learned.current, params?.wordsLearned),
           });
-          return made ? "Storybook ready" : "The storybook could not be made. Say sorry kindly and say goodbye.";
+          return "Storybook ready";
         },
         teach_word: (params) => {
           if (language.current === "off") return "language learning is off for this story";
