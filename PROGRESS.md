@@ -24,6 +24,7 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- sthavir007: Deployed `d3a55a1` to my own sandbox `birbal-sthavir-live` (`c18091d4-91cf-4c27-8ded-3d97e9355911`), with API keys in `.env.local`: https://3000-c18091d4-91cf-4c27-8ded-3d97e9355911.daytonaproxy01.net . shadowwaddle's `birbal-dev2` is on a different Daytona account, so it still needs its own pull and rebuild.
 - sthavir007: UI + agent pass. **UI:** minimal line icons replace emojis (`lib/genres.tsx`, `components/Icons.tsx`), 30 genres in `GENRES`, age 4-10, physical keyboard on `PinPad`, captions and the words toggle removed. **Animation:** removed per-frame SVG filters from `WatercolorCanvas`, character movement now transitions, volume re-renders only on visible change. **Audio:** agent output is 44.1 kHz and the hook connects by websocket instead of WebRTC. Typecheck, build and a Playwright run on the mock agent pass. Not yet heard in a live session.
   - **Agent:** prompt now makes the child the hero, side characters talk to the child, each story is seeded from the conversation ID. Voice tags are now `<Bright>`, `<Sparkle>`, `<Goofy>`, `<Elder>` (Australian, American, American, British). `make_storybook.genre` comes from `{{genre}}`.
   - **Language setup not added yet:** the agent has no LANGUAGE ADVENTURE section, `teach_word` tool, or language variables.
