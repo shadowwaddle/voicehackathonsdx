@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle: Parent Dashboard done (D1-D3). The files are free again.
-- sthavir007: —
+- sthavir007: Guaranteed storybook, Stop Birbal code word, reports for any session length. Editing the voice hooks, `lib/scoring`, `/api/report`, `/api/storybook`, dashboard tabs.
 
 ## To do (proposed tracks for the rest of the hackathon)
 **Track A, shadowwaddle (app + demo):**
