@@ -1,43 +1,56 @@
-import { Daytona, type Sandbox } from "@daytonaio/sdk";
+import { Daytona } from "@daytonaio/sdk";
+import type { StorybookRequest, StorybookResult } from "@/types/contract";
+import { STORYBOOK_SCRIPT } from "@/lib/storybook-script";
 
-// Hosts storybook pages in one shared, public Daytona sandbox running a static server.
-// Each storybook lives at /<story_id>/ on that server.
+// Builds a storybook in its own public Daytona sandbox and serves it on port 8000.
 
-const PORT = 8080;
-const ROOT = "/home/daytona/books";
+const PORT = 8000;
+const ROOT = "/home/daytona/storybook";
+const AUTO_STOP_MINUTES = 1440; // the link dies when the sandbox stops
 
-const g = globalThis as unknown as { __bookSandbox?: Promise<Sandbox> };
-
-async function getSandbox(): Promise<Sandbox> {
-  const daytona = new Daytona({ apiKey: process.env.DAYTONA_API_KEY });
-  const existing = process.env.STORYBOOK_SANDBOX_ID;
-  const sandbox = existing
-    ? await daytona.get(existing)
-    : await daytona.create({ public: true, labels: { app: "birbal-storybooks" } });
-  if (existing && sandbox.state !== "started") await sandbox.start();
-
-  await sandbox.process.executeCommand(`mkdir -p ${ROOT}`);
-  // Start the static server once; ignore "already running".
-  const running = await sandbox.process.executeCommand(`pgrep -f "http.server ${PORT}" || true`);
-  if (!running.result.trim()) {
-    const sid = "books-server";
-    await sandbox.process.createSession(sid).catch(() => {});
-    await sandbox.process.executeSessionCommand(sid, {
-      command: `cd ${ROOT} && python3 -m http.server ${PORT}`,
-      runAsync: true,
-    });
+async function timed<T>(label: string, work: () => Promise<T>): Promise<T> {
+  const began = Date.now();
+  try {
+    const result = await work();
+    console.log(`[daytona] ${label}: ${Date.now() - began}ms`);
+    return result;
+  } catch (e) {
+    throw new Error(`Daytona step "${label}" failed after ${Date.now() - began}ms: ${e instanceof Error ? e.message : e}`);
   }
-  return sandbox;
 }
 
-export async function publishStorybook(storyId: string, html: string): Promise<string> {
-  g.__bookSandbox ??= getSandbox().catch((e) => {
-    g.__bookSandbox = undefined; // retry next time
+export async function createStorybook(req: StorybookRequest): Promise<StorybookResult> {
+  if (!process.env.DAYTONA_API_KEY) throw new Error("DAYTONA_API_KEY is not set");
+  const daytona = new Daytona({ apiKey: process.env.DAYTONA_API_KEY });
+  const sandbox = await timed("create sandbox", () =>
+    daytona.create({ language: "python", public: true, autoStopInterval: AUTO_STOP_MINUTES, labels: { app: "birbal-storybook" } }),
+  );
+  try {
+    await timed("upload files", async () => {
+      await sandbox.fs.createFolder(ROOT, "755");
+      await sandbox.fs.uploadFile(Buffer.from(STORYBOOK_SCRIPT, "utf8"), `${ROOT}/build.py`);
+      await sandbox.fs.uploadFile(Buffer.from(JSON.stringify(req), "utf8"), `${ROOT}/story.json`);
+    });
+    await timed("generate page", async () => {
+      const run = await sandbox.process.executeCommand("python3 build.py", ROOT);
+      if (run.exitCode !== 0) throw new Error(run.result);
+    });
+    await timed("start server", async () => {
+      const session = "storybook-server";
+      await sandbox.process.createSession(session);
+      await sandbox.process.executeSessionCommand(session, {
+        command: `cd ${ROOT}/site && python3 -m http.server ${PORT}`,
+        runAsync: true,
+      });
+      const ready = await sandbox.process.executeCommand(
+        `sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do curl -sf -o /dev/null http://localhost:${PORT}/ && exit 0; sleep 1; done; exit 1'`,
+      );
+      if (ready.exitCode !== 0) throw new Error("server did not start");
+    });
+    const link = await timed("preview link", () => sandbox.getPreviewLink(PORT));
+    return { url: link.url, title: req.title };
+  } catch (e) {
+    await sandbox.delete().catch(() => {}); // don't leave a broken sandbox running
     throw e;
-  });
-  const sandbox = await g.__bookSandbox;
-  await sandbox.fs.createFolder(`${ROOT}/${storyId}`, "755");
-  await sandbox.fs.uploadFile(Buffer.from(html, "utf8"), `${ROOT}/${storyId}/index.html`);
-  const link = await sandbox.getPreviewLink(PORT);
-  return `${link.url.replace(/\/$/, "")}/${storyId}/`;
+  }
 }

@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle (Lane A, UI): A1-A4 done; waiting on Daytona network to build and test
-- sthavir007: Lane B: hooks/useVoiceAgent.ts (moved out of app/story/page.tsx), set_scene + play_sound client tools, /api/sfx, watercolor storybook HTML, scripts/test-storybook.ts
+- sthavir007: Lane B: live test of storybook + SFX (needs keys in `.env`), ElevenLabs agent setup
 
 ## To do
 - [ ] Daytona sandbox has no internet, so npm install fails. Fix the account network setting, then build and run
@@ -12,6 +12,9 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- sthavir007: B1-B3 code done, against the Lane A/B contract with no contract changes: `hooks/useVoiceAgent.ts`, `POST /api/storybook` + `lib/daytona.ts` + `lib/storybook-script.ts`, `/api/sfx`, `scripts/test-storybook.ts`. `next build` with the real hook, route validation and the Python generator pass in Daytona. Not yet tested live: real voice session, real sandbox publish, real SFX.
+  - **Lane A:** `app/story/layout.tsx` adds the `ConversationProvider` the current SDK requires. To go live, change the import in `app/story/page.tsx` to `@/hooks/useVoiceAgent` and set `NEXT_PUBLIC_ELEVENLABS_AGENT_ID`.
+  - **Daytona builds:** the default sandbox gets OOM-killed by `next build` with all workers. Some new sandboxes come up with no DNS; test with `curl` and recreate if so.
 - shadowwaddle: A4 done: `app/story/page.tsx` (watercolor background, speaker name, time ring, tap-to-start, listening/speaking indicator, captions toggle, end button, storybook modal with QR, saves the story) and `hooks/useVoiceAgent.mock.ts`. To go live, change the one import line in `app/story/page.tsx` to `@/hooks/useVoiceAgent`. **Not built yet:** the dev sandbox has no outbound internet (DNS fails, connections reset), so `npm install` hangs. This blocks Lane B too: storybook sandboxes can't install anything either.
 - sthavir007: Changed CLAUDE.md rule 3: commit and push after every working piece, `git pull --rebase` before each edit and right before each push
 - shadowwaddle: A3 done: `components/WatercolorCanvas.tsx` with props `scene`, `volume`. The speaker blob is matched by `scene.speaker` against `scene.characters[].name`, ignoring case, and up to 4 characters are shown. Lane B: send `palette` as hex strings.
