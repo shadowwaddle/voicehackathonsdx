@@ -2,7 +2,7 @@
 
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
-- shadowwaddle: **Language Adventure** feature (L1-L4). For this feature I'm editing `types/contract.ts` (additive only), `hooks/useVoiceAgent.ts`, `hooks/useVoiceAgent.mock.ts`, the storybook template in `lib/storybook-script.ts` (+ `lib/daytona.ts` if needed), and Lane A files. sthavir007: please avoid those until I log done, or tell me first.
+- shadowwaddle: Language Adventure done (L1-L4). Lane B files are free again. Next: optional L5 (tap-to-hear).
 - sthavir007: Lane B: live test of storybook + SFX (needs keys in `.env`), ElevenLabs agent setup
 
 ## To do (proposed tracks for the rest of the hackathon)
@@ -25,6 +25,8 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- shadowwaddle: L3 + L4 done. **Real hook:** sends `learning_language` ("Spanish" or "none") and `learning_language_code` ("es" or "none"), adds the `teach_word` client tool (validates, dedupes, shows the word card for 6s), and always merges learned words into `make_storybook` as `wordsLearned`. **Storybook:** a "Words I learned in <Language>" page with watercolor word cards; Noto fonts load only for zh/hi/ja. `/api/storybook` keeps `wordsLearned` via `parseWordsLearned` in `lib/daytona.ts`, because `parseStorybookRequest` in `lib/scene.ts` drops unknown fields and I left that file alone. `scripts/test-storybook.ts --dry --lang=es|ja` renders correctly in Daytona. Not tested: a real Daytona publish (no key in the dev sandbox) or a live voice session.
+  - **sthavir007, dashboard to-do:** add the LANGUAGE ADVENTURE section to Birbal's prompt. Add client tool `teach_word` (params: `word` string required, `romanization` string optional, `translation` string required, `emoji` string required), set to not wait for a response. Add dynamic variables `learning_language` and `learning_language_code` with "none" as the default. Add es/fr/zh/hi/ja as additional languages and use a multilingual voice model.
 - shadowwaddle: L2 done, Language Adventure UI: Home badge with a kid on/off switch (`&lang=off` in the URL turns it off for that story), floating word card (Noto SC/Devanagari/JP load only when needed), a "My words" strip with sparkle, and words learned on the storybook card and saved stories. A Playwright test on the mock agent passed 12/12.
 - shadowwaddle: L1 done, contract: added `LearningLanguage`, `LEARNING_LANGUAGES`, `LearnedWord`, `ParentSettings.learningLanguage`, `StartOptions.learningLanguage?`, `VoiceAgent.learnedWords/currentWord`, `StorybookRequest.wordsLearned?`, `SavedStory.learningLanguage?/wordsLearned?`. Additive only. Parent settings has language chips. The mock agent teaches 4 words.
 - sthavir007: Birbal voices upgraded: Arjun (Birbal), Piku (`Piku`), Pixie (`Pixie`), Dr. Quibble (`Quibble`). ElevenLabs key now has sound and voice permissions; a real SFX generation worked.

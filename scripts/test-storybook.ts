@@ -1,11 +1,12 @@
 // Builds a sample storybook.
 //   npx tsx --env-file=.env scripts/test-storybook.ts   (real Daytona sandbox, prints the URL)
 //   npx tsx scripts/test-storybook.ts --dry             (runs the Python locally, no Daytona)
+//   add --lang=es or --lang=ja to include a "Words I learned" page
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { StorybookRequest } from "../types/contract";
+import type { LearnedWord, StorybookRequest } from "../types/contract";
 import { createStorybook } from "../lib/daytona";
 import { STORYBOOK_SCRIPT } from "../lib/storybook-script";
 
@@ -24,6 +25,23 @@ const sample: StorybookRequest = {
     { location: "The Mirror Room", mood: "happy", palette: ["#f5b8d0", "#8fc7e8"], characters: [PIP, LUNA], speaker: "Birbal" },
   ],
 };
+
+const WORDS: Record<string, LearnedWord[]> = {
+  es: [
+    { word: "hola", translation: "hello", emoji: "👋", language: "es" },
+    { word: "¡abre!", translation: "open!", emoji: "🚪", language: "es" },
+    { word: "luna", translation: "moon", emoji: "🌙", language: "es" },
+    { word: "gracias", translation: "thank you", emoji: "🙏", language: "es" },
+  ],
+  ja: [
+    { word: "こんにちは", romanization: "konnichiwa", translation: "hello", emoji: "👋", language: "ja" },
+    { word: "ひらけ", romanization: "hirake", translation: "open", emoji: "🚪", language: "ja" },
+    { word: "つき", romanization: "tsuki", translation: "moon", emoji: "🌙", language: "ja" },
+    { word: "ありがとう", romanization: "arigatou", translation: "thank you", emoji: "🙏", language: "ja" },
+  ],
+};
+const lang = process.argv.find((a) => a.startsWith("--lang="))?.slice(7);
+if (lang) sample.wordsLearned = WORDS[lang] ?? [];
 
 async function main() {
   if (process.argv.includes("--dry")) {

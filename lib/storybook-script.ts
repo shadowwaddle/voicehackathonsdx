@@ -1,5 +1,6 @@
 // Python that runs inside the Daytona sandbox: reads story.json, writes site/index.html.
-// Self-contained output: inline SVG art and system fonts only.
+// Self-contained output: inline SVG art and system fonts, plus one Noto font link when
+// the words page needs Chinese, Hindi or Japanese script.
 export const STORYBOOK_SCRIPT = String.raw`
 import html, json, math, os, random
 
@@ -73,27 +74,65 @@ def bullets(items):
 
 scenes = book["scenes"] or [{"location": book["genre"].title(), "mood": "calm", "palette": fallback, "characters": book["characters"], "speaker": "Birbal"}]
 pages = "".join('<section class="page">%s<h2>%s</h2></section>' % (illustration(s, i), esc(s["location"])) for i, s in enumerate(scenes))
+LANG_NAMES = {"es": "Spanish", "fr": "French", "zh": "Mandarin", "hi": "Hindi", "ja": "Japanese"}
+NOTO = {"zh": "Noto Sans SC", "hi": "Noto Sans Devanagari", "ja": "Noto Sans JP"}
+words = [w for w in (book.get("wordsLearned") or []) if w.get("word") and w.get("language") in LANG_NAMES]
+lang = words[0]["language"] if words else ""
+noto = NOTO.get(lang)
+font_link = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=%s:wght@500;700&display=swap">' % noto.replace(" ", "+")) if noto else ""
+word_font = ('"%s", ' % noto if noto else "") + "Georgia, serif"
+
+
+def word_card(w, k):
+    r = random.Random(w["word"] + str(k))
+    color = r.choice(fallback)
+    rom = '<div class="rom">%s</div>' % esc(w["romanization"]) if w.get("romanization") else ""
+    return (
+        '<div class="word"><svg class="wbg" viewBox="0 0 200 170" aria-hidden="true"><defs>%s</defs>'
+        '<path d="%s" fill="%s" opacity=".38" filter="url(#wb%d)"/></svg>'
+        '<div class="wc"><div class="emo">%s</div><div class="w" lang="%s">%s</div>%s<div class="m">%s</div></div></div>'
+        % (bleed(r, "wb%d" % k, 0.03, 14), blob(r, 100, 85, 88, 70), color, k,
+           esc(w.get("emoji", "")), esc(lang), esc(w["word"]), rom, esc(w.get("translation", "")))
+    )
+
+
+words_page = (
+    '<section class="page"><h2>Words I learned in %s</h2><div class="words">%s</div></section>'
+    % (LANG_NAMES[lang], "".join(word_card(w, k) for k, w in enumerate(words)))
+) if words else ""
+word_css = (
+    ".words{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}"
+    ".word{position:relative;text-align:center;padding:26px 12px}"
+    ".wbg{position:absolute;inset:0;width:100%;height:100%;border-radius:0}"
+    ".wc{position:relative}.emo{font-size:40px}"
+    ".w{font-family:" + word_font + ";font-size:36px;font-weight:700;line-height:1.2;margin-top:4px}"
+    ".rom{font-size:18px;opacity:.7}.m{font-size:18px;margin-top:4px}"
+) if words else ""
+
 names = ", ".join(esc(c["name"]) for c in book["characters"])
 starring = "<p>Starring %s</p>" % names if names else ""
 
 page = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>%(title)s</title>
-<style>
+%(font_link)s<style>
 :root{--ink:#2b2350;--paper:#fffaf0;--accent:#c8622a;--soft:#f3e8ff}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#ffe8cc,#e9d8ff);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;color:var(--ink);min-height:100vh;padding:24px 16px}
 .page{max-width:720px;margin:0 auto 24px;background:var(--paper);border-radius:28px;padding:32px;box-shadow:0 20px 60px rgba(43,35,80,.18)}
 .cover{text-align:center;padding:64px 32px}.tag{display:inline-block;background:var(--soft);border-radius:999px;padding:6px 14px;font-weight:700}
 h1{font-size:clamp(32px,7vw,52px);margin:20px 0 8px;line-height:1.1}h2{color:var(--accent);margin:20px 0 8px;font-size:26px}
 p,li{font-size:20px;line-height:1.6}ul{padding-left:22px}svg{display:block;width:100%%;height:auto;border-radius:18px}.name{font:700 18px Georgia,serif;fill:#2b2350}
+%(word_css)s
 </style></head><body>
 <section class="page cover"><span class="tag">%(genre)s</span><h1>%(title)s</h1><p>Told by Birbal, with help from a very clever friend</p>%(starring)s</section>
 %(pages)s
 <section class="page"><h2>The Story</h2><p>%(summary)s</p></section>
 <section class="page"><h2>Your choices</h2>%(choices)s<h2>Puzzles you solved</h2>%(puzzles)s</section>
+%(words_page)s
 </body></html>""" % {
     "title": esc(book["title"]), "genre": esc(book["genre"].title()), "starring": starring, "pages": pages,
     "summary": esc(book["summary"]), "choices": bullets(book["choices"]), "puzzles": bullets(book["puzzles_solved"]),
+    "font_link": font_link, "word_css": word_css, "words_page": words_page,
 }
 
 os.makedirs(os.path.join(here, "site"), exist_ok=True)

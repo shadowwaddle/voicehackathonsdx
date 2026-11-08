@@ -1,6 +1,23 @@
 import { Daytona } from "@daytonaio/sdk";
-import type { StorybookRequest, StorybookResult } from "@/types/contract";
+import { LEARNING_LANGUAGES, type LearnedWord, type StorybookRequest, type StorybookResult } from "@/types/contract";
 import { STORYBOOK_SCRIPT } from "@/lib/storybook-script";
+
+// Validates the words for the storybook's "Words I learned" page (max 12, one language).
+export function parseWordsLearned(v: unknown): LearnedWord[] {
+  const s = (x: unknown, max: number) => (typeof x === "string" ? x.trim().slice(0, max) : "");
+  const out: LearnedWord[] = [];
+  for (const raw of Array.isArray(v) ? v : []) {
+    const w = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
+    const language = s(w.language, 4) as LearnedWord["language"];
+    const word = s(w.word, 40);
+    const translation = s(w.translation, 80);
+    if (!word || !translation || !(language in LEARNING_LANGUAGES)) continue;
+    if (out.some((o) => o.word.toLowerCase() === word.toLowerCase())) continue;
+    const romanization = s(w.romanization, 60);
+    out.push({ word, translation, emoji: s(w.emoji, 16) || "⭐", language, ...(romanization ? { romanization } : {}) });
+  }
+  return out.filter((w) => w.language === out[0]?.language).slice(0, 12);
+}
 
 // Builds a storybook in its own public Daytona sandbox and serves it on port 8000.
 
