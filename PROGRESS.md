@@ -2,16 +2,16 @@
 
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
-- shadowwaddle (Lane A, UI): A1-A4 done; waiting on Daytona network to build and test
+- shadowwaddle (Lane A, UI): live test of the real agent on the dev sandbox
 - sthavir007: Lane B: live test of storybook + SFX (needs keys in `.env`), ElevenLabs agent setup
 
 ## To do
-- [ ] Daytona sandbox has no internet, so npm install fails. Fix the account network setting, then build and run
 - [x] Idea picked: Birbal (kid-safe storytelling voice app)
 - [ ] ElevenLabs agent setup in the dashboard (Lane B)
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- shadowwaddle: **Lane A builds and runs in Daytona.** Dev sandbox `birbal-dev2` (`899d91d1-4387-497e-9a23-7e57579b38dc`). The old one had no DNS, so I deleted it. A Playwright walkthrough on the mock agent passed all 11 checks: Home, PIN, genre filter, captions, timer, storybook modal with QR, story saved with characters, `returningCharacters` passed on continue, early end, no horizontal scroll on phone, no console errors. Softened the watercolor edges and moved the characters above the captions. The Story screen now uses the real agent by default. Set `NEXT_PUBLIC_MOCK_AGENT=1` to use the mock.
 - sthavir007: Created the ElevenLabs agent **Birbal** (`agent_4101m6ygevwfer28kx8fcp9wgf3c`, also in CLAUDE.md): client tools `set_scene`, `make_storybook`, `play_sound`, plus `end_call`. LLM `claude-haiku-5-5`, temp 0.7. Voices: George (Birbal), Jessica (`Piku`), Laura (`Pixie`), Charlie (`Quibble`). Agent writes `<Piku>...</Piku>` tags; the hook strips them from the transcript. Not yet tested in a live voice session.
   - **Lane A:** put `NEXT_PUBLIC_ELEVENLABS_AGENT_ID=agent_4101m6ygevwfer28kx8fcp9wgf3c` in your `.env`, then change the import in `app/story/page.tsx` to `@/hooks/useVoiceAgent`.
 - sthavir007: B1-B3 code done, against the Lane A/B contract with no contract changes: `hooks/useVoiceAgent.ts`, `POST /api/storybook` + `lib/daytona.ts` + `lib/storybook-script.ts`, `/api/sfx`, `scripts/test-storybook.ts`. `next build` with the real hook, route validation and the Python generator pass in Daytona. Not yet tested live: real voice session, real sandbox publish, real SFX.

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Suspense, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { GENRES, type Genre } from "@/types/contract";
-import { useVoiceAgent } from "@/hooks/useVoiceAgent.mock"; // swap to "@/hooks/useVoiceAgent" for the real agent
+import { useVoiceAgent as useRealAgent } from "@/hooks/useVoiceAgent";
+import { useVoiceAgent as useMockAgent } from "@/hooks/useVoiceAgent.mock";
 import { useParentSettings } from "@/hooks/useParentSettings";
 import { useSavedStories } from "@/hooks/useSavedStories";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -12,6 +13,10 @@ import { WatercolorCanvas } from "@/components/WatercolorCanvas";
 import { TimeRing } from "@/components/TimeRing";
 import { StorybookModal } from "@/components/StorybookModal";
 import { BackIcon } from "@/components/Icons";
+
+// Real ElevenLabs agent by default; set NEXT_PUBLIC_MOCK_AGENT=1 to demo without it.
+// Chosen once at module load, so the hook order never changes between renders.
+const useVoiceAgent = process.env.NEXT_PUBLIC_MOCK_AGENT === "1" ? useMockAgent : useRealAgent;
 
 function StoryScreen() {
   const params = useSearchParams();

@@ -177,8 +177,8 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
       <svg width="0" height="0" className="absolute">
         <defs>
           <filter id="wc-bleed" x="-10%" y="-10%" width="120%" height="120%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="2" seed="7" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="38" xChannelSelector="R" yChannelSelector="G" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.006" numOctaves="2" seed="7" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="16" xChannelSelector="R" yChannelSelector="G" />
           </filter>
           <filter id="wc-edge" x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="3" result="noise" />
@@ -199,11 +199,11 @@ export function WatercolorCanvas({ scene, volume }: { scene: Scene | null; volum
           transition: "filter 2s ease",
         }}
       >
-        <canvas ref={canvasRef} className="h-full w-full" style={{ filter: "url(#wc-bleed) blur(6px)" }} />
+        <canvas ref={canvasRef} className="h-full w-full" style={{ filter: "url(#wc-bleed) blur(10px)" }} />
       </div>
 
       {/* Characters */}
-      <svg className="absolute inset-x-0 bottom-0 h-[55%] w-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMax meet">
+      <svg className="absolute inset-x-0 bottom-[20%] h-[40%] w-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMax meet">
         {characters.map((ch, i) => {
           const n = characters.length;
           const x = (1000 / (n + 1)) * (i + 1);

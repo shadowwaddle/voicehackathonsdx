@@ -31,7 +31,7 @@ Treat every task as if the other person pushed something a minute ago. Run `git 
 - ElevenLabs agent changes go straight to the ElevenLabs account, not git. Write the agent ID and any important config changes in `PROGRESS.md`.
 
 Shared resources:
-- Daytona dev sandbox: `birbal-dev`, ID `58b15034-fb15-49af-b105-726f878458a9` (public previews, auto-stops after 60 min idle). Code is in `~/app`. The private repo can't be cloned there, so send code with `git archive HEAD | gzip | base64` piped into `daytona exec <id> -- bash -c "... | base64 -d | tar -xz -C ~/app"`.
+- Daytona dev sandbox: `birbal-dev2`, ID `899d91d1-4387-497e-9a23-7e57579b38dc` (public previews, auto-stops after 60 min idle). Code is in `~/app`. The private repo can't be cloned there, so send code with `git archive HEAD | gzip | base64` piped into `daytona exec <id> -- bash -c "... | base64 -d | tar -xz -C ~/app"`.
 - ElevenLabs agent ID: agent_4101m6ygevwfer28kx8fcp9wgf3c
 
 ## Basic rules
