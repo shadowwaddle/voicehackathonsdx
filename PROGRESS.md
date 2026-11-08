@@ -19,7 +19,6 @@
 
 **Shared, unassigned:**
 - [ ] README / submission write-up (what it is, ElevenLabs + Daytona usage, how to run)
-- [ ] Before judging: set the dev sandbox's auto-stop to 0 so the demo URL stays up
 - [x] Idea picked: Birbal
 - [x] ElevenLabs agent created (sthavir007)
 
