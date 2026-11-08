@@ -5,12 +5,27 @@
 - shadowwaddle (Lane A, UI): live test of the real agent on the dev sandbox
 - sthavir007: Lane B: live test of storybook + SFX (needs keys in `.env`), ElevenLabs agent setup
 
-## To do
-- [x] Idea picked: Birbal (kid-safe storytelling voice app)
-- [ ] ElevenLabs agent setup in the dashboard (Lane B)
+## To do (proposed tracks for the rest of the hackathon)
+**Track A, shadowwaddle (app + demo):**
+- [ ] Live voice test on the preview URL (iPad + laptop), fix UI bugs it shows
+- [ ] Demo polish: loading/error states, captions with real agent, iPad layout
+- [ ] Demo script + 60s backup video recorded on mock mode (`NEXT_PUBLIC_MOCK_AGENT=1`)
+
+**Track B, sthavir007 (agent + backend):**
+- [ ] Share API keys privately; put them in the dev sandbox's `.env.local`
+- [ ] Live test `make_storybook` → Daytona publish → QR link opens on a phone
+- [ ] Live test `play_sound` / `/api/sfx`
+- [ ] Tune agent prompt: short turns, `set_scene` on every scene/speaker change, safety (refuses personal info, handles "I'm sad/hurt")
+
+**Shared, unassigned:**
+- [ ] README / submission write-up (what it is, ElevenLabs + Daytona usage, how to run)
+- [ ] Before judging: set the dev sandbox's auto-stop to 0 so the demo URL stays up
+- [x] Idea picked: Birbal
+- [x] ElevenLabs agent created (sthavir007)
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- shadowwaddle: Status: app builds and runs on the dev sandbox with the real agent: https://3000-899d91d1-4387-497e-9a23-7e57579b38dc.daytonaproxy01.net . The voice should work. Storybook and SFX need API keys in the sandbox. Proposed tracks are under To do.
 - shadowwaddle: **Lane A builds and runs in Daytona.** Dev sandbox `birbal-dev2` (`899d91d1-4387-497e-9a23-7e57579b38dc`). The old one had no DNS, so I deleted it. A Playwright walkthrough on the mock agent passed all 11 checks: Home, PIN, genre filter, captions, timer, storybook modal with QR, story saved with characters, `returningCharacters` passed on continue, early end, no horizontal scroll on phone, no console errors. Softened the watercolor edges and moved the characters above the captions. The Story screen now uses the real agent by default. Set `NEXT_PUBLIC_MOCK_AGENT=1` to use the mock.
 - sthavir007: Created the ElevenLabs agent **Birbal** (`agent_4101m6ygevwfer28kx8fcp9wgf3c`, also in CLAUDE.md): client tools `set_scene`, `make_storybook`, `play_sound`, plus `end_call`. LLM `claude-haiku-5-5`, temp 0.7. Voices: George (Birbal), Jessica (`Piku`), Laura (`Pixie`), Charlie (`Quibble`). Agent writes `<Piku>...</Piku>` tags; the hook strips them from the transcript. Not yet tested in a live voice session.
   - **Lane A:** put `NEXT_PUBLIC_ELEVENLABS_AGENT_ID=agent_4101m6ygevwfer28kx8fcp9wgf3c` in your `.env`, then change the import in `app/story/page.tsx` to `@/hooks/useVoiceAgent`.
