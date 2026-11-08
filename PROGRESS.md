@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle: Language Adventure done (L1-L4). Lane B files are free again. Next: optional L5 (tap-to-hear).
-- sthavir007: Lane B: live test of storybook + SFX (needs keys in `.env`), ElevenLabs agent setup
+- sthavir007: UI pass: minimal icons instead of emojis, 30 genres, age up to 10, keyboard PIN, no captions, smoother canvas, crisper audio
 
 ## To do (proposed tracks for the rest of the hackathon)
 **Track A, shadowwaddle (app + demo):**
