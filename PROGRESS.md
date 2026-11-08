@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle: —
-- sthavir007: —
+- sthavir007: Lane B: hooks/useVoiceAgent.ts (moved out of app/story/page.tsx), set_scene + play_sound client tools, /api/sfx, watercolor storybook HTML, scripts/test-storybook.ts
 
 ## To do
 - [ ] QR package for the storybook card (waiting on approval)
