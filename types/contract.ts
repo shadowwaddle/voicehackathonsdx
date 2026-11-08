@@ -6,6 +6,26 @@ export type Genre = (typeof GENRES)[number];
 
 export const MAX_MINUTES_OPTIONS = [5, 10, 15, 20, 30] as const;
 
+/** Language Adventure: target language the child learns a few words in ("off" = none). */
+export type LearningLanguage = "off" | "es" | "fr" | "zh" | "hi" | "ja";
+
+export const LEARNING_LANGUAGES: Record<Exclude<LearningLanguage, "off">, { name: string; native: string; romanized: boolean }> = {
+  es: { name: "Spanish", native: "Español", romanized: false },
+  fr: { name: "French", native: "Français", romanized: false },
+  zh: { name: "Mandarin", native: "中文", romanized: true },
+  hi: { name: "Hindi", native: "हिन्दी", romanized: true },
+  ja: { name: "Japanese", native: "日本語", romanized: true },
+};
+
+/** A word taught during the story (params of the `teach_word` client tool + language). */
+export interface LearnedWord {
+  word: string; // in target script, e.g. "abre", "猫"
+  romanization?: string; // for zh/hi/ja, e.g. "māo"
+  translation: string; // English meaning
+  emoji: string; // one kid-friendly emoji
+  language: LearningLanguage;
+}
+
 /** Parent settings, stored in localStorage on the device only. */
 export interface ParentSettings {
   childAge: number; // 4-9
@@ -13,6 +33,7 @@ export interface ParentSettings {
   maxMinutes: number; // one of MAX_MINUTES_OPTIONS
   soundEffects: boolean;
   pin: string; // 4 digits
+  learningLanguage: LearningLanguage;
 }
 
 export type Mood = "calm" | "happy" | "mysterious" | "exciting" | "silly";
@@ -40,6 +61,7 @@ export interface StorybookRequest {
   puzzles_solved: string[];
   characters: SceneCharacter[];
   scenes: Scene[];
+  wordsLearned?: LearnedWord[];
 }
 
 /** Response of POST /api/storybook. */
@@ -56,6 +78,8 @@ export interface SavedStory {
   url: string;
   characters: string[]; // names, passed back as returning_characters
   createdAt: string; // ISO
+  learningLanguage?: LearningLanguage;
+  wordsLearned?: LearnedWord[];
 }
 
 export interface TranscriptLine {
@@ -70,6 +94,7 @@ export interface StartOptions {
   genre: Genre;
   settings: ParentSettings;
   returningCharacters: string[]; // empty → "none"
+  learningLanguage?: LearningLanguage; // defaults to "off"
 }
 
 /**
@@ -77,8 +102,10 @@ export interface StartOptions {
  * hooks/useVoiceAgent.ts (Lane B) both implement this.
  *
  * Dynamic variables sent to the agent: child_age, genre, allowed_genres (comma list),
- * max_minutes, returning_characters (comma list or "none").
- * Client tools: set_scene(Scene), make_storybook(StorybookRequest), play_sound({ description }).
+ * max_minutes, returning_characters (comma list or "none"),
+ * learning_language (e.g. "Spanish" or "none"), learning_language_code (e.g. "es" or "none").
+ * Client tools: set_scene(Scene), make_storybook(StorybookRequest), play_sound({ description }),
+ * teach_word({ word, romanization?, translation, emoji }).
  */
 export interface VoiceAgent {
   status: AgentStatus;
@@ -89,6 +116,8 @@ export interface VoiceAgent {
   storybook: StorybookResult | null;
   storybookLoading: boolean;
   error: string | null;
+  learnedWords: LearnedWord[];
+  currentWord: LearnedWord | null; // set for ~6s after teach_word
   start(opts: StartOptions): Promise<void>;
   stop(): Promise<void>;
 }

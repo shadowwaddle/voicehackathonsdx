@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: ParentSettings = {
   maxMinutes: 15,
   soundEffects: true,
   pin: "1234",
+  learningLanguage: "off",
 };
 
 export function useParentSettings() {

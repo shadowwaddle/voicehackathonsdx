@@ -1,7 +1,9 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
-import type { AgentStatus, Scene, StartOptions, StorybookResult, TranscriptLine, VoiceAgent } from "@/types/contract";
+import type {
+  AgentStatus, LearnedWord, Scene, StartOptions, StorybookResult, TranscriptLine, VoiceAgent,
+} from "@/types/contract";
 import { parseScene } from "@/lib/scene";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
@@ -16,6 +18,8 @@ export function useVoiceAgent(): VoiceAgent {
   const [storybookLoading, setStorybookLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
+  const [learnedWords, setLearnedWords] = useState<LearnedWord[]>([]);
+  const [currentWord, setCurrentWord] = useState<LearnedWord | null>(null);
   const started = useRef(false);
   const nudged = useRef(false);
   const soundEffects = useRef(false);
@@ -160,5 +164,8 @@ export function useVoiceAgent(): VoiceAgent {
   else if (ended) status = "ended";
   else if (conversation.status === "connecting") status = "connecting";
 
-  return { status, volume, transcript, scene, elapsedSeconds, storybook, storybookLoading, error, start, stop };
+  return {
+    status, volume, transcript, scene, elapsedSeconds, storybook, storybookLoading, error,
+    learnedWords, currentWord, start, stop,
+  };
 }

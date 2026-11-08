@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
-  AgentStatus, Scene, StartOptions, StorybookResult, TranscriptLine, VoiceAgent,
+  AgentStatus, LearnedWord, LearningLanguage, Scene, StartOptions, StorybookResult, TranscriptLine, VoiceAgent,
 } from "@/types/contract";
 
 // Fake voice agent for building the UI without ElevenLabs.
@@ -41,6 +41,41 @@ const SCRIPT: Step[] = [
   },
 ];
 
+type MockWord = Omit<LearnedWord, "language">;
+const MOCK_WORDS: Record<Exclude<LearningLanguage, "off">, MockWord[]> = {
+  es: [
+    { word: "hola", translation: "hello", emoji: "👋" },
+    { word: "gato", translation: "cat", emoji: "🐱" },
+    { word: "¡abre!", translation: "open!", emoji: "🚪" },
+    { word: "gracias", translation: "thank you", emoji: "🙏" },
+  ],
+  fr: [
+    { word: "bonjour", translation: "hello", emoji: "👋" },
+    { word: "chat", translation: "cat", emoji: "🐱" },
+    { word: "ouvre !", translation: "open!", emoji: "🚪" },
+    { word: "merci", translation: "thank you", emoji: "🙏" },
+  ],
+  zh: [
+    { word: "你好", romanization: "nǐ hǎo", translation: "hello", emoji: "👋" },
+    { word: "猫", romanization: "māo", translation: "cat", emoji: "🐱" },
+    { word: "开", romanization: "kāi", translation: "open", emoji: "🚪" },
+    { word: "谢谢", romanization: "xièxie", translation: "thank you", emoji: "🙏" },
+  ],
+  hi: [
+    { word: "नमस्ते", romanization: "namaste", translation: "hello", emoji: "👋" },
+    { word: "बिल्ली", romanization: "billi", translation: "cat", emoji: "🐱" },
+    { word: "खोलो", romanization: "kholo", translation: "open", emoji: "🚪" },
+    { word: "धन्यवाद", romanization: "dhanyavaad", translation: "thank you", emoji: "🙏" },
+  ],
+  ja: [
+    { word: "こんにちは", romanization: "konnichiwa", translation: "hello", emoji: "👋" },
+    { word: "ねこ", romanization: "neko", translation: "cat", emoji: "🐱" },
+    { word: "ひらけ", romanization: "hirake", translation: "open", emoji: "🚪" },
+    { word: "ありがとう", romanization: "arigatou", translation: "thank you", emoji: "🙏" },
+  ],
+};
+const WORD_MS = 5000;
+
 const SPEAK_MS = 5000;
 const LISTEN_MS = 2600;
 
@@ -53,6 +88,8 @@ export function useVoiceAgent(): VoiceAgent {
   const [storybook, setStorybook] = useState<StorybookResult | null>(null);
   const [storybookLoading, setStorybookLoading] = useState(false);
   const [error] = useState<string | null>(null);
+  const [learnedWords, setLearnedWords] = useState<LearnedWord[]>([]);
+  const [currentWord, setCurrentWord] = useState<LearnedWord | null>(null);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const tick = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -77,14 +114,17 @@ export function useVoiceAgent(): VoiceAgent {
   }, [clearAll]);
 
   const start = useCallback(
-    async ({ genre, settings, returningCharacters }: StartOptions) => {
+    async ({ genre, settings, returningCharacters, learningLanguage = "off" }: StartOptions) => {
       clearAll();
       live.current = true;
       setTranscript([]);
       setStorybook(null);
       setElapsed(0);
+      setLearnedWords([]);
+      setCurrentWord(null);
       setStatus("connecting");
-      console.info("[mock agent] start", { genre, settings, returningCharacters });
+      console.info("[mock agent] start", { genre, settings, returningCharacters, learningLanguage });
+      const words = learningLanguage === "off" ? [] : MOCK_WORDS[learningLanguage];
 
       const limit = settings.maxMinutes * 60;
       later(900, () => {
@@ -102,6 +142,16 @@ export function useVoiceAgent(): VoiceAgent {
             setStatus("speaking");
             say("birbal", step.birbal);
           });
+          // One new word in each of the first four scenes.
+          const w = words[i];
+          if (w) {
+            const word: LearnedWord = { ...w, language: learningLanguage };
+            later(at + 1500, () => {
+              setCurrentWord(word);
+              setLearnedWords((prev) => [...prev, word]);
+            });
+            later(at + 1500 + WORD_MS, () => setCurrentWord((c) => (c === word ? null : c)));
+          }
           at += SPEAK_MS;
           if (i === SCRIPT.length - 1) {
             later(at, () => {
@@ -144,5 +194,8 @@ export function useVoiceAgent(): VoiceAgent {
 
   useEffect(() => clearAll, [clearAll]);
 
-  return { status, volume, transcript, scene, elapsedSeconds, storybook, storybookLoading, error, start, stop };
+  return {
+    status, volume, transcript, scene, elapsedSeconds, storybook, storybookLoading, error,
+    learnedWords, currentWord, start, stop,
+  };
 }

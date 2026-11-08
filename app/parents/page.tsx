@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { GENRES, MAX_MINUTES_OPTIONS, type Genre } from "@/types/contract";
+import { GENRES, LEARNING_LANGUAGES, MAX_MINUTES_OPTIONS, type Genre, type LearningLanguage } from "@/types/contract";
 import { GENRE_INFO } from "@/lib/genres";
 import { useParentSettings } from "@/hooks/useParentSettings";
 import { useSavedStories } from "@/hooks/useSavedStories";
@@ -130,6 +130,28 @@ export default function ParentsPage() {
                 }`}
               >
                 <span aria-hidden>{GENRE_INFO[g].icon}</span> {GENRE_INFO[g].label}
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card title="Language learning" detail="A friendly character teaches 3-6 words per story">
+        <div className="flex flex-wrap gap-2">
+          {(["off", ...Object.keys(LEARNING_LANGUAGES)] as LearningLanguage[]).map((code) => {
+            const on = settings.learningLanguage === code;
+            const label = code === "off" ? "Off" : `${LEARNING_LANGUAGES[code].name} · ${LEARNING_LANGUAGES[code].native}`;
+            return (
+              <button
+                key={code}
+                lang={code === "off" ? undefined : code}
+                onClick={() => save({ learningLanguage: code })}
+                aria-pressed={on}
+                className={`rounded-full px-4 py-2 text-sm font-medium ring-1 transition ${
+                  on ? "bg-ink text-white ring-ink" : "bg-white text-muted ring-black/10 hover:ring-black/20"
+                }`}
+              >
+                {label}
               </button>
             );
           })}
