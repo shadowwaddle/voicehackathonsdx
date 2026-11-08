@@ -2,7 +2,7 @@
 
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
-- shadowwaddle: Language Adventure done (L1-L4). Lane B files are free again. Next: optional L5 (tap-to-hear).
+- shadowwaddle: **Parent Dashboard** (D1-D3). Editing `types/contract.ts` (additive), `app/parents/**`, `components/dashboard/**`, `hooks/useReports.ts`, `app/api/report/**`, `app/api/delete-conversation/**`, `lib/scoring/**`, the end-of-session handling in `hooks/useVoiceAgent.ts` (+ mock), and the first-run consent gate in `app/page.tsx` / `app/story/page.tsx`. sthavir007: please ask before touching these.
 - sthavir007: —
 
 ## To do (proposed tracks for the rest of the hackathon)
