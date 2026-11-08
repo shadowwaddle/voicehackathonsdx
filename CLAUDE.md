@@ -34,6 +34,15 @@ Shared resources:
 - Daytona sandbox ID: TBD
 - ElevenLabs agent ID: TBD
 
+## Basic rules
+
+- **Claim work before starting.** Put your task under "In progress" in `PROGRESS.md` and push it, then clear it when done, so both sessions don't build the same thing.
+- **Keep files small and separate** so the two sessions rarely touch the same one.
+- **Don't spend tokens on repeats.** Read a file once per task and only the part you need. No subagents unless the user asks.
+- **Keep replies short.** Say what changed and what's next, without recapping.
+- **Ask before changing shared resources.** Check with the user before deleting or replacing the shared sandbox or overwriting the shared ElevenLabs agent, and note the change in `PROGRESS.md`.
+- **Keep this file for lasting rules.** Status and decisions go in `PROGRESS.md`.
+
 ## Project
 
 _Fill this in once you've picked the idea: what it does, the tech stack, and how to run it._
