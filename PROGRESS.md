@@ -25,6 +25,7 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- sthavir007: Birbal voices upgraded: Arjun (Birbal), Piku (`Piku`), Pixie (`Pixie`), Dr. Quibble (`Quibble`). ElevenLabs key now has sound and voice permissions; a real SFX generation worked.
 - shadowwaddle: Status: app builds and runs on the dev sandbox with the real agent: https://3000-899d91d1-4387-497e-9a23-7e57579b38dc.daytonaproxy01.net . The voice should work. Storybook and SFX need API keys in the sandbox. Proposed tracks are under To do.
 - shadowwaddle: **Lane A builds and runs in Daytona.** Dev sandbox `birbal-dev2` (`899d91d1-4387-497e-9a23-7e57579b38dc`). The old one had no DNS, so I deleted it. A Playwright walkthrough on the mock agent passed all 11 checks: Home, PIN, genre filter, captions, timer, storybook modal with QR, story saved with characters, `returningCharacters` passed on continue, early end, no horizontal scroll on phone, no console errors. Softened the watercolor edges and moved the characters above the captions. The Story screen now uses the real agent by default. Set `NEXT_PUBLIC_MOCK_AGENT=1` to use the mock.
 - sthavir007: Created the ElevenLabs agent **Birbal** (`agent_4101m6ygevwfer28kx8fcp9wgf3c`, also in CLAUDE.md): client tools `set_scene`, `make_storybook`, `play_sound`, plus `end_call`. LLM `claude-haiku-5-5`, temp 0.7. Voices: George (Birbal), Jessica (`Piku`), Laura (`Pixie`), Charlie (`Quibble`). Agent writes `<Piku>...</Piku>` tags; the hook strips them from the transcript. Not yet tested in a live voice session.
