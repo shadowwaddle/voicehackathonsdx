@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-fredoka), ui-rounded, sans-serif;
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #2b2350;
+  --color-paper: #fffaf0;
+  --color-sun: #ff8a3d;
+  --color-plum: #7c5cff;
+}
+
+body {
+  background: radial-gradient(circle at 20% 0%, #ffe8cc 0, transparent 50%),
+    radial-gradient(circle at 100% 100%, #e9d8ff 0, transparent 55%), #fff6ea;
+  color: var(--color-ink);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.orb-idle { animation: orb-breathe 4s ease-in-out infinite; }
+
+@keyframes float-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.float-up { animation: float-up 0.35s ease-out both; }
