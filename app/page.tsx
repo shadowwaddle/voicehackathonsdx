@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Genre, SavedStory } from "@/types/contract";
 import { GENRE_INFO } from "@/lib/genres";
@@ -8,17 +9,22 @@ import { useSavedStories } from "@/hooks/useSavedStories";
 import { Wordmark } from "@/components/Wordmark";
 import { GenreCard } from "@/components/GenreCard";
 import { LockIcon } from "@/components/Icons";
+import { LangFonts, languageName } from "@/components/Language";
 
 export default function Home() {
   const router = useRouter();
   const { settings, ready } = useParentSettings();
   const { stories } = useSavedStories();
   const genres = settings.allowedGenres;
+  // Kids can switch the parent's chosen language off (or back on) for this story only.
+  const [langOn, setLangOn] = useState(true);
+  const lang = settings.learningLanguage;
+  const langParam = lang !== "off" && !langOn ? "&lang=off" : "";
 
-  const startGenre = (genre: Genre) => router.push(`/story?genre=${genre}`);
+  const startGenre = (genre: Genre) => router.push(`/story?genre=${genre}${langParam}`);
   const surprise = () => genres.length && startGenre(genres[Math.floor(Math.random() * genres.length)]);
   const continueStory = (s: SavedStory) =>
-    router.push(`/story?genre=${genres.includes(s.genre) ? s.genre : genres[0] ?? s.genre}&continue=${s.id}`);
+    router.push(`/story?genre=${genres.includes(s.genre) ? s.genre : genres[0] ?? s.genre}&continue=${s.id}${langParam}`);
 
   return (
     <main className="mx-auto min-h-dvh max-w-5xl px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-8">
@@ -48,6 +54,23 @@ export default function Home() {
         >
           <span aria-hidden>✨</span> Start a story
         </button>
+
+        {ready && lang !== "off" && (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <span className={`rounded-full px-4 py-2 font-display text-lg font-semibold shadow-soft transition ${langOn ? "bg-[#d9f5f2] text-[#1f7a72]" : "bg-white/70 text-muted"}`}>
+              🌎 {langOn ? `Learning ${languageName(lang)}` : "Language Adventure off"}
+            </span>
+            <button
+              role="switch"
+              aria-checked={langOn}
+              aria-label={`Learn ${languageName(lang)} words in this story`}
+              onClick={() => setLangOn(!langOn)}
+              className={`relative h-9 w-16 rounded-full shadow-soft transition ${langOn ? "bg-[#3fae9f]" : "bg-stone-300"}`}
+            >
+              <span className={`absolute top-1 h-7 w-7 rounded-full bg-white shadow transition-all ${langOn ? "left-8" : "left-1"}`} />
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="rise mt-12" style={{ animationDelay: "80ms" }}>
@@ -79,6 +102,11 @@ export default function Home() {
                     {g.icon}
                   </span>
                   <h3 className="mt-3 line-clamp-2 font-display text-lg font-semibold leading-snug">{s.title}</h3>
+                  {s.wordsLearned && s.wordsLearned.length > 0 && (
+                    <p className="mt-1 text-sm font-medium text-[#1f7a72]">
+                      🌎 Words learned: {s.wordsLearned.length} · {languageName(s.learningLanguage)}
+                    </p>
+                  )}
                   {s.characters.length > 0 && (
                     <p className="mt-1 line-clamp-1 text-sm text-muted">With {s.characters.join(", ")}</p>
                   )}

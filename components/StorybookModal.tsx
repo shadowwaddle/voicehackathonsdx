@@ -1,9 +1,12 @@
 "use client";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
-import type { StorybookResult } from "@/types/contract";
+import type { LearnedWord, LearningLanguage, StorybookResult } from "@/types/contract";
+import { LangFonts, langFont, languageName } from "@/components/Language";
 
-export function StorybookModal({ storybook }: { storybook: StorybookResult }) {
+export function StorybookModal({
+  storybook, words = [], language = "off",
+}: { storybook: StorybookResult; words?: LearnedWord[]; language?: LearningLanguage }) {
   return (
     <div className="fixed inset-0 z-20 grid place-items-center bg-ink/30 p-4 backdrop-blur-sm" role="dialog" aria-modal aria-labelledby="sb-title">
       <div className="rise w-full max-w-lg overflow-hidden rounded-[2rem] bg-paper shadow-lift">
@@ -13,6 +16,15 @@ export function StorybookModal({ storybook }: { storybook: StorybookResult }) {
           <h2 id="sb-title" className="mt-1 font-display text-3xl font-bold leading-tight">{storybook.title}</h2>
         </div>
         <div className="flex flex-col items-center gap-5 p-8">
+          {words.length > 0 && (
+            <div className="w-full rounded-2xl bg-[#d9f5f2] px-4 py-3 text-center text-[#1f7a72]">
+              <LangFonts langs={[language]} />
+              <p className="font-display text-lg font-semibold">🌎 Words learned: {words.length} · {languageName(language)}</p>
+              <p lang={language} className="mt-1 text-base" style={{ fontFamily: langFont(language) }}>
+                {words.map((w) => `${w.emoji} ${w.word}`).join("   ")}
+              </p>
+            </div>
+          )}
           <div className="rounded-3xl bg-white p-4 shadow-soft">
             <QRCodeSVG value={storybook.url} size={168} fgColor="#3a3150" bgColor="#ffffff" level="M" />
           </div>

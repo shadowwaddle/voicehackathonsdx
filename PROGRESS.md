@@ -25,6 +25,7 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- shadowwaddle: L2 done, Language Adventure UI: Home badge with a kid on/off switch (`&lang=off` in the URL turns it off for that story), floating word card (Noto SC/Devanagari/JP load only when needed), a "My words" strip with sparkle, and words learned on the storybook card and saved stories. A Playwright test on the mock agent passed 12/12.
 - shadowwaddle: L1 done, contract: added `LearningLanguage`, `LEARNING_LANGUAGES`, `LearnedWord`, `ParentSettings.learningLanguage`, `StartOptions.learningLanguage?`, `VoiceAgent.learnedWords/currentWord`, `StorybookRequest.wordsLearned?`, `SavedStory.learningLanguage?/wordsLearned?`. Additive only. Parent settings has language chips. The mock agent teaches 4 words.
 - sthavir007: Birbal voices upgraded: Arjun (Birbal), Piku (`Piku`), Pixie (`Pixie`), Dr. Quibble (`Quibble`). ElevenLabs key now has sound and voice permissions; a real SFX generation worked.
 - shadowwaddle: Status: app builds and runs on the dev sandbox with the real agent: https://3000-899d91d1-4387-497e-9a23-7e57579b38dc.daytonaproxy01.net . The voice should work. Storybook and SFX need API keys in the sandbox. Proposed tracks are under To do.

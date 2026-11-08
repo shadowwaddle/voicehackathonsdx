@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { GENRES, type Genre } from "@/types/contract";
+import { GENRES, type Genre, type LearningLanguage } from "@/types/contract";
 import { useVoiceAgent as useRealAgent } from "@/hooks/useVoiceAgent";
 import { useVoiceAgent as useMockAgent } from "@/hooks/useVoiceAgent.mock";
 import { useParentSettings } from "@/hooks/useParentSettings";
@@ -13,6 +13,7 @@ import { WatercolorCanvas } from "@/components/WatercolorCanvas";
 import { TimeRing } from "@/components/TimeRing";
 import { StorybookModal } from "@/components/StorybookModal";
 import { BackIcon } from "@/components/Icons";
+import { MyWords, WordCard } from "@/components/Language";
 
 // Real ElevenLabs agent by default; set NEXT_PUBLIC_MOCK_AGENT=1 to demo without it.
 // Chosen once at module load, so the hook order never changes between renders.
@@ -29,6 +30,7 @@ function StoryScreen() {
   const genre: Genre = GENRES.includes(asked) ? asked : settings.allowedGenres[0] ?? "fantasy";
   const continuing = getStory(params.get("continue") ?? "");
   const info = GENRE_INFO[genre];
+  const lang: LearningLanguage = params.get("lang") === "off" ? "off" : settings.learningLanguage;
 
   // Remember every character we meet so they can return in the next story.
   const metCharacters = useRef(new Set<string>());
@@ -49,11 +51,13 @@ function StoryScreen() {
       url: sb.url,
       characters: [...new Set([...(continuing?.characters ?? []), ...metCharacters.current])],
       createdAt: new Date().toISOString(),
+      learningLanguage: lang,
+      wordsLearned: agent.learnedWords,
     });
-  }, [agent.storybook, addStory, genre, continuing]);
+  }, [agent.storybook, agent.learnedWords, addStory, genre, continuing, lang]);
 
   const begin = () =>
-    agent.start({ genre, settings, returningCharacters: continuing?.characters ?? [] });
+    agent.start({ genre, settings, returningCharacters: continuing?.characters ?? [], learningLanguage: lang });
 
   const live = agent.status === "speaking" || agent.status === "listening";
   const speaker = agent.scene?.speaker || "Birbal";
@@ -106,7 +110,9 @@ function StoryScreen() {
 
           {agent.status === "connecting" && <Status emoji="🦉" text="Waking Birbal up…" />}
 
-          {live && (
+          {live && agent.currentWord && <WordCard word={agent.currentWord} />}
+
+          {live && !agent.currentWord && (
             <div className="relative grid h-40 w-40 place-items-center" aria-live="polite">
               <span
                 className={`soft-pulse absolute inset-0 rounded-full ${agent.status === "speaking" ? "bg-sun" : "bg-[#86c5a0]"}`}
@@ -140,6 +146,7 @@ function StoryScreen() {
         {/* Bottom */}
         {live && (
           <footer className="space-y-3">
+            <MyWords words={agent.learnedWords} />
             {captionsOn && lastLines.length > 0 && (
               <div className="mx-auto max-w-2xl space-y-2 rounded-[1.75rem] bg-white/75 p-4 shadow-soft backdrop-blur">
                 {lastLines.map((l, i) => (
@@ -176,7 +183,7 @@ function StoryScreen() {
           <Status emoji="🎨" text="Birbal is painting your storybook…" />
         </div>
       )}
-      {agent.storybook && <StorybookModal storybook={agent.storybook} />}
+      {agent.storybook && <StorybookModal storybook={agent.storybook} words={agent.learnedWords} language={lang} />}
     </main>
   );
 }
