@@ -45,14 +45,14 @@ Shared resources:
 
 ## Project
 
-- Idea: **Birbal**, a kid-safe (ages 4-9) interactive storytelling voice app. Every story has a mystery the child helps solve. When the story ends, the agent calls the `make_storybook` server tool, which builds an HTML storybook in a Daytona sandbox and returns a preview URL shown as a card with a QR code.
+- Idea: **Birbal**, a kid-safe (ages 4-9) interactive storytelling voice app. Every story has a mystery the child helps solve. When the story ends, the agent calls the `make_storybook` client tool. The app POSTs to `/api/storybook`, which builds an HTML storybook in a Daytona sandbox and returns a preview URL shown as a card with a QR code.
 - Stack: Next.js (App Router, TypeScript, Tailwind), `@elevenlabs/react`, Daytona SDK.
 - Run: in a Daytona sandbox: `npm install && npm run dev` (port 3000), then use `preview_link`.
 - Safety: never ask for or store a child's personal info. A session timer ends the call at `max_minutes`.
 
 ## Lanes (who owns what)
 
-- **shadowwaddle:** app code: `app/`, `components/`, `lib/`, API routes.
-- **sthavir007:** ElevenLabs agent setup (prompt, voices, dynamic variables, tool config) and the storybook HTML template.
+- **Lane A, shadowwaddle (UI):** pages, `components/`, `hooks/useParentSettings.ts`, `hooks/useSavedStories.ts`, `hooks/useVoiceAgent.mock.ts`.
+- **Lane B, sthavir007 (voice/backend):** `hooks/useVoiceAgent.ts`, `app/api/`, `lib/daytona.ts`, `scripts/`, ElevenLabs dashboard setup.
 - **Shared: `types/contract.ts`.** Either person can change it, but note every change in `PROGRESS.md` because both lanes depend on it.
 - Ask the user before installing any new package.

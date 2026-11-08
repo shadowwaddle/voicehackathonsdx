@@ -1,91 +1,94 @@
-// Shared contract between the app, the API routes and the ElevenLabs agent.
+// Shared contract between Lane A (UI) and Lane B (voice/backend).
 // Both lanes depend on this file: log every change in PROGRESS.md.
 
-export const GENRES = [
-  "fantasy",
-  "space",
-  "jungle",
-  "ocean",
-  "detective",
-  "dinosaurs",
-] as const;
+export const GENRES = ["fantasy", "space", "jungle", "ocean", "detective", "dinosaurs"] as const;
 export type Genre = (typeof GENRES)[number];
 
-export const GENRE_INFO: Record<Genre, { label: string; emoji: string; color: string }> = {
-  fantasy: { label: "Magic Kingdom", emoji: "🏰", color: "bg-violet-200" },
-  space: { label: "Outer Space", emoji: "🚀", color: "bg-sky-200" },
-  jungle: { label: "Jungle Trek", emoji: "🐒", color: "bg-lime-200" },
-  ocean: { label: "Under the Sea", emoji: "🐙", color: "bg-cyan-200" },
-  detective: { label: "Mystery Town", emoji: "🔍", color: "bg-amber-200" },
-  dinosaurs: { label: "Dino Valley", emoji: "🦕", color: "bg-emerald-200" },
-};
+export const MAX_MINUTES_OPTIONS = [5, 10, 15, 20, 30] as const;
 
 /** Parent settings, stored in localStorage on the device only. */
 export interface ParentSettings {
-  pin: string; // 4 digits, empty until the parent sets one
-  allowedGenres: Genre[];
   childAge: number; // 4-9
-  maxMinutes: number;
+  allowedGenres: Genre[];
+  maxMinutes: number; // one of MAX_MINUTES_OPTIONS
   soundEffects: boolean;
+  pin: string; // 4 digits
 }
 
-/**
- * Dynamic variables passed to the agent in startSession().
- * The agent prompt references them as {{allowed_genres}}, {{child_age}}, etc.
- * Never add anything that identifies the child (name, school, location...).
- */
-export interface AgentDynamicVariables {
-  allowed_genres: string; // comma-separated Genre values
-  genre: Genre; // the genre the child picked for this story
-  child_age: number;
-  max_minutes: number;
-  sound_effects: boolean;
-  session_id: string; // random id; the agent passes it back to make_storybook
+export type Mood = "calm" | "happy" | "mysterious" | "exciting" | "silly";
+
+export interface SceneCharacter {
+  name: string;
+  color: string; // hex, e.g. "#ff9f6b"
 }
 
-/**
- * Body the ElevenLabs server tool `make_storybook` POSTs to /api/tools/make-storybook.
- * Configure these as tool body parameters; session_id comes from the dynamic variable.
- */
-export interface MakeStorybookRequest {
-  session_id: string;
+/** Params of the `set_scene` client tool. */
+export interface Scene {
+  location: string; // short, e.g. "moonlit library"
+  mood: Mood;
+  palette: string[]; // 3-5 hex colors for the background
+  characters: SceneCharacter[]; // who is in the scene (max ~4)
+  speaker: string; // name of who is talking now; "Birbal" when narrating
+}
+
+/** Params of the `make_storybook` client tool; the client POSTs this to /api/storybook. */
+export interface StorybookRequest {
   title: string;
   genre: Genre;
   summary: string;
-  characters: string[];
   choices: string[]; // decisions/answers the child made
   puzzles_solved: string[];
+  characters: SceneCharacter[];
+  scenes: Scene[];
 }
 
-export type MakeStorybookResponse =
-  | { ok: true; story_id: string; url: string; message: string }
-  | { ok: false; error: string };
-
-/** What the client polls at GET /api/storybook?session=<session_id>. */
-export type StorybookStatus =
-  | { status: "pending" }
-  | { status: "ready"; storybook: Storybook };
-
-export interface Storybook extends MakeStorybookRequest {
-  story_id: string;
-  url: string;
-  created_at: string; // ISO
+/** Response of POST /api/storybook. */
+export interface StorybookResult {
+  url: string; // public Daytona preview URL
+  title: string;
 }
 
-/** Story saved on the device for the Home screen list. */
+/** A finished story saved on the device. */
 export interface SavedStory {
-  story_id: string;
+  id: string;
   title: string;
   genre: Genre;
-  summary: string;
   url: string;
-  created_at: string;
+  characters: string[]; // names, passed back as returning_characters
+  createdAt: string; // ISO
 }
 
-/** One caption line in the Story screen. */
-export interface Caption {
+export interface TranscriptLine {
   id: string;
-  speaker: "birbal" | "child";
-  character?: string; // character name when Birbal is voicing someone
+  role: "child" | "birbal";
   text: string;
+}
+
+export type AgentStatus = "idle" | "connecting" | "listening" | "speaking" | "ended" | "error";
+
+export interface StartOptions {
+  genre: Genre;
+  settings: ParentSettings;
+  returningCharacters: string[]; // empty → "none"
+}
+
+/**
+ * What useVoiceAgent() returns. hooks/useVoiceAgent.mock.ts (Lane A) and
+ * hooks/useVoiceAgent.ts (Lane B) both implement this.
+ *
+ * Dynamic variables sent to the agent: child_age, genre, allowed_genres (comma list),
+ * max_minutes, returning_characters (comma list or "none").
+ * Client tools: set_scene(Scene), make_storybook(StorybookRequest), play_sound({ description }).
+ */
+export interface VoiceAgent {
+  status: AgentStatus;
+  volume: number; // 0-1, agent output level
+  transcript: TranscriptLine[];
+  scene: Scene | null;
+  elapsedSeconds: number;
+  storybook: StorybookResult | null;
+  storybookLoading: boolean;
+  error: string | null;
+  start(opts: StartOptions): Promise<void>;
+  stop(): Promise<void>;
 }
