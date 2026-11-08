@@ -2,7 +2,7 @@
 
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
-- shadowwaddle (Lane A, UI): live test of the real agent on the dev sandbox
+- shadowwaddle: **Language Adventure** feature (L1-L4). For this feature I'm editing `types/contract.ts` (additive only), `hooks/useVoiceAgent.ts`, `hooks/useVoiceAgent.mock.ts`, the storybook template in `lib/storybook-script.ts` (+ `lib/daytona.ts` if needed), and Lane A files. sthavir007: please avoid those until I log done, or tell me first.
 - sthavir007: Lane B: live test of storybook + SFX (needs keys in `.env`), ElevenLabs agent setup
 
 ## To do (proposed tracks for the rest of the hackathon)
