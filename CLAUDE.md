@@ -45,8 +45,14 @@ Shared resources:
 
 ## Project
 
-_Fill this in once you've picked the idea: what it does, the tech stack, and how to run it._
+- Idea: **Birbal**, a kid-safe (ages 4-9) interactive storytelling voice app. Every story has a mystery the child helps solve. When the story ends, the agent calls the `make_storybook` server tool, which builds an HTML storybook in a Daytona sandbox and returns a preview URL shown as a card with a QR code.
+- Stack: Next.js (App Router, TypeScript, Tailwind), `@elevenlabs/react`, Daytona SDK.
+- Run: in a Daytona sandbox: `npm install && npm run dev` (port 3000), then use `preview_link`.
+- Safety: never ask for or store a child's personal info. A session timer ends the call at `max_minutes`.
 
-- Idea: TBD
-- Stack: TBD (ElevenLabs for voice)
-- Run: TBD
+## Lanes (who owns what)
+
+- **shadowwaddle:** app code: `app/`, `components/`, `lib/`, API routes.
+- **sthavir007:** ElevenLabs agent setup (prompt, voices, dynamic variables, tool config) and the storybook HTML template.
+- **Shared: `types/contract.ts`.** Either person can change it, but note every change in `PROGRESS.md` because both lanes depend on it.
+- Ask the user before installing any new package.

@@ -2,11 +2,12 @@
 
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
-- shadowwaddle: —
+- shadowwaddle: Next.js scaffold, types/contract.ts, all screens with mock data, /api/tools/make-storybook route
 - sthavir007: —
 
 ## To do
-- [ ] Pick the idea and fill in the Project section of CLAUDE.md
+- [x] Idea picked: Birbal (kid-safe storytelling voice app)
+- [ ] ElevenLabs agent: prompt, character voices, dynamic variables (allowed_genres, child_age, max_minutes), make_storybook server tool → (proposed: sthavir007)
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
