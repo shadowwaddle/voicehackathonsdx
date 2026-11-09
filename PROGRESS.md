@@ -3,7 +3,7 @@
 ## In progress
 <!-- What each person is working on right now. Update this when you start or stop a task. -->
 - shadowwaddle: Parent Dashboard done (D1-D3). The files are free again.
-- sthavir007: —
+- sthavir007: GitHub Pages build (static-site flag): moving the public demo to sthavir007.github.io/birbal.
 
 ## To do (proposed tracks for the rest of the hackathon)
 **Track A, shadowwaddle (app + demo):**
