@@ -1,4 +1,5 @@
 "use client";
+import { STATIC_SITE } from "@/lib/birbal/platform";
 import { useState } from "react";
 import type { DeletionStatus, SessionReport } from "@/types/contract";
 import { Panel, formatDate } from "./ui";
@@ -26,8 +27,11 @@ export function PrivacyTab({ reports, onDeleteEverything }: { reports: SessionRe
       <Panel title="What happens to your child's voice">
         <PrivacyTimeline />
         <p className="mt-5 rounded-2xl bg-stone-50 px-4 py-3 text-sm text-muted">
-          The storybook page (story title, summary, your child&apos;s choices and words learned) is hosted in its own Daytona sandbox.
-          Its link stops working once that sandbox has been idle for 24 hours.
+          {STATIC_SITE ? (
+            <>The storybook (story title, summary, your child&apos;s choices and words learned) lives inside its own link and isn&apos;t stored on any server. Anyone you share that link with can read it.</>
+          ) : (
+            <>The storybook page (story title, summary, your child&apos;s choices and words learned) is hosted in its own Daytona sandbox. Its link stops working once that sandbox has been idle for 24 hours.</>
+          )}
         </p>
       </Panel>
 
@@ -44,6 +48,8 @@ export function PrivacyTab({ reports, onDeleteEverything }: { reports: SessionRe
                 </div>
                 {r.demo ? (
                   <p className="mt-1 text-sm text-muted">Sample data: no recording existed, so there was nothing to delete.</p>
+                ) : STATIC_SITE ? (
+                  <p className="mt-1 text-sm text-muted">Scored on this device. ElevenLabs deletes the recording automatically within one day.</p>
                 ) : (
                   <ul className="mt-1.5 space-y-0.5">
                     <Row ok={r.deletion.audio === "deleted"} skipped={r.deletion.audio === "skipped"} text={recording(r.deletion.audio, "Audio")} />

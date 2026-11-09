@@ -7,7 +7,9 @@ import {
   type StorybookResult, type TranscriptLine, type VoiceAgent,
 } from "@/types/contract";
 import { parseScene, parseStorybookRequest } from "@/lib/scene";
-import { renderLocalBook } from "@/lib/birbal/localBook";
+import { STATIC_SITE } from "@/lib/birbal/platform";
+import { bookLink } from "@/lib/birbal/shareBook";
+import { localSoundUrl } from "@/lib/birbal/localSfx";
 import { submitReport } from "@/lib/scoring/submit";
 import { GENRE_INFO } from "@/lib/genres";
 import { buildBirbalSession } from "@/lib/birbal/prompt";
@@ -85,7 +87,7 @@ export function useVoiceAgent(): VoiceAgent {
   const sendBook = useCallback(async (body: object) => {
     book.current = "making";
     setStorybookLoading(true);
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < (STATIC_SITE ? 0 : 2); attempt++) {
       try {
         const res = await fetch("/api/storybook", {
           method: "POST",
@@ -102,13 +104,12 @@ export function useVoiceAgent(): VoiceAgent {
         console.error(e);
       }
     }
-    // Server unreachable: the browser builds the page itself, so there is never an error.
-    const parsed = parseStorybookRequest({ ...body, title: (body as { title?: string }).title || "A Birbal Story" });
-    const html = typeof parsed === "string" ? `<h1>A Birbal Story</h1>` : renderLocalBook(parsed);
-    setStorybook({
-      url: URL.createObjectURL(new Blob([html], { type: "text/html" })),
-      title: typeof parsed === "string" ? "A Birbal Story" : parsed.title,
-    });
+    // No server (or it's unreachable): the browser packs the whole book into its link.
+    const raw = body as { title?: string; wordsLearned?: LearnedWord[] };
+    const parsed = parseStorybookRequest({ ...raw, title: raw.title || "A Birbal Story" });
+    if (typeof parsed !== "string") {
+      setStorybook({ url: await bookLink({ ...parsed, wordsLearned: raw.wordsLearned ?? [] }), title: parsed.title });
+    }
     book.current = "done";
     setStorybookLoading(false);
   }, []);
@@ -253,6 +254,11 @@ export function useVoiceAgent(): VoiceAgent {
         },
         play_sound: async (params) => {
           if (!soundEffects.current) return "sound effects are off";
+          if (STATIC_SITE) {
+            const file = localSoundUrl(params.description);
+            if (file) await new Audio(file).play().catch(() => {});
+            return "ok";
+          }
           const res = await fetch("/api/sfx", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

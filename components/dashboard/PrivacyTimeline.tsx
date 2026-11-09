@@ -1,6 +1,27 @@
+import { STATIC_SITE } from "@/lib/birbal/platform";
+
 // "What happens to your child's voice". Every sentence here describes what the code
 // actually does (hooks/useVoiceAgent.ts, app/api/report, lib/scoring). Keep it that way.
-const STEPS = [
+const STATIC_STEPS = [
+  {
+    title: "Heard live",
+    body: "During the story, ElevenLabs (our voice service) hears your child and turns their words into text so Birbal can reply.",
+  },
+  {
+    title: "Scored on this device",
+    body: "When the story ends, your own browser works out the scores. This website has no server, so the text isn't sent to us.",
+  },
+  {
+    title: "Recording removed automatically",
+    body: "ElevenLabs is set to delete each conversation's audio and transcript within one day.",
+  },
+  {
+    title: "Only scores kept on this device",
+    body: "What stays, in this browser only: the numbers you see here, plus each story's title, characters, words learned and storybook link for the Saved adventures list. The app drops its copy of the conversation as soon as scoring finishes.",
+  },
+];
+
+const SERVER_STEPS = [
   {
     title: "Heard live",
     body: "During the story, ElevenLabs (our voice service) hears your child and turns their words into text so Birbal can reply.",
@@ -18,6 +39,8 @@ const STEPS = [
     body: "What stays, in this browser only: the numbers you see here, plus each story's title, characters, words learned and storybook link for the Saved adventures list. The app drops its copy of the conversation as soon as scoring finishes.",
   },
 ];
+
+const STEPS = STATIC_SITE ? STATIC_STEPS : SERVER_STEPS;
 
 export function PrivacyTimeline() {
   return (

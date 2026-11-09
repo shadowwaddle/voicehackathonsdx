@@ -27,7 +27,7 @@ export function StorybookModal({
             </div>
           )}
           <div className="rounded-3xl bg-white p-4 shadow-soft">
-            <QRCodeSVG value={storybook.url} size={168} fgColor="#3a3150" bgColor="#ffffff" level="M" />
+            <QRCodeSVG value={storybook.url} size={storybook.url.length > 400 ? 232 : 168} fgColor="#3a3150" bgColor="#ffffff" level={storybook.url.length > 400 ? "L" : "M"} />
           </div>
           <p className="-mt-2 text-sm text-muted">Grown-ups: scan to keep this storybook</p>
           <a
