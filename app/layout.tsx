@@ -19,7 +19,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={fredoka.variable}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <p className="pointer-events-none fixed inset-x-0 z-40 text-center text-xs font-medium text-ink/60" style={{ top: "max(2px, env(safe-area-inset-top))" }}>
+          *demo version
+        </p>
+        {children}
+      </body>
     </html>
   );
 }
