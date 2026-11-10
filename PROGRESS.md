@@ -24,6 +24,7 @@
 
 ## Log
 <!-- Newest first. Format: - [HH:MM] name: what was done -->
+- sthavir007: The github.io site is now a demo build (`NEXT_PUBLIC_MOCK_AGENT=1`, no agent ID) that plays a prerecorded story from `public/demo/*.mp3` (`lib/birbal/demoAudio.ts`), so visitors never use ElevenLabs credits. The real voice agent is unchanged for local or server builds.
 - sthavir007: **Public demo is now https://sthavir007.github.io/birbal/** (built files only, in the public repo `sthavir007/birbal`). Static mode is `NEXT_PUBLIC_STATIC_SITE=1` with `NEXT_PUBLIC_BASE_PATH=/birbal`, built with `app/api` left out. In that mode storybooks live inside their link (`/book/#...`), scoring runs in the browser, sounds come from `public/sfx`, and the agent auto-deletes recordings after 1 day. The server routes and Daytona code stay in this repo. To update the site: build static, push `out/` to that repo. Keep `.nojekyll`.
 - sthavir007: Storybook always generates (agent, then end-of-session backup, then an app-served page if Daytona fails). Dashboard reports for any length: under 30s is a "Quick chat" with a plain-English summary and no score or trends. Only "Stop Birbal" ends a story early. Agent: sound can't interrupt Birbal, background voice filter on, `skip_turn` for noise. Birbal only speaks foreign words he has taught.
   - **Important:** an app hosted inside a Daytona sandbox can create other sandboxes but can't upload to them (`read ECONNRESET`), so real Daytona storybooks and sandbox scoring only work when the app runs outside Daytona. Fallbacks cover it.

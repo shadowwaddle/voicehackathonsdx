@@ -5,15 +5,17 @@ import type {
   StorybookResult, TranscriptLine, VoiceAgent,
 } from "@/types/contract";
 import { submitReport } from "@/lib/scoring/submit";
-import { pickOpening } from "@/lib/greetings";
 import { GENRE_INFO } from "@/lib/genres";
 import { bookFromSession } from "@/lib/birbal/fallbackBook";
-import { makeSpark } from "@/lib/birbal/spark";
+import { DEMO_BIRBAL, DEMO_CHILD, DEMO_OPENER, DEMO_TITLE } from "@/lib/birbal/demoAudio";
+import { BASE_PATH, STATIC_SITE } from "@/lib/birbal/platform";
+import { bookLink } from "@/lib/birbal/shareBook";
+import { parseStorybookRequest } from "@/lib/scene";
 import { SESSION_SECONDS } from "@/lib/birbal/timeline";
 import { useSceneDirector } from "@/lib/birbal/useSceneDirector";
 import { useReports } from "@/hooks/useReports";
 
-// Fake voice agent for building the UI without ElevenLabs.
+// Demo voice agent: plays a prerecorded story, so it never uses ElevenLabs. Also used to build the UI.
 // Same interface as hooks/useVoiceAgent.ts (Lane B): swap the import to go live.
 
 const PIP = { name: "Pip", color: "#f5a25d" };
@@ -120,7 +122,30 @@ export function useVoiceAgent(): VoiceAgent {
   const tick = useRef<ReturnType<typeof setInterval> | null>(null);
   const live = useRef(false);
 
+  const player = useRef<HTMLAudioElement | null>(null);
+  const play = (file: string) => {
+    const p = player.current;
+    if (!p) return;
+    p.src = `${BASE_PATH}/demo/${file}`;
+    void p.play().catch(() => {});
+  };
+
+  // The storybook travels inside its link on the static site; otherwise the app server makes it.
+  const makeBook = useCallback(async () => {
+    const s = session.current;
+    const body = bookFromSession({ title: s.title, genre: s.genre, lines: lines.current, scenes: scenesSeen(), words: [] });
+    if (STATIC_SITE) {
+      const parsed = parseStorybookRequest(body);
+      if (typeof parsed !== "string") setStorybook({ url: await bookLink({ ...parsed, wordsLearned: [] }), title: s.title });
+      return;
+    }
+    const res = await fetch("/api/storybook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const made = (await res.json()) as StorybookResult;
+    setStorybook({ ...made, url: new URL(made.url, window.location.origin).href });
+  }, [scenesSeen]);
+
   const clearAll = useCallback(() => {
+    player.current?.pause();
     timers.current.forEach(clearTimeout);
     timers.current = [];
     if (tick.current) clearInterval(tick.current);
@@ -145,27 +170,27 @@ export function useVoiceAgent(): VoiceAgent {
     if (!bookMade.current) {
       bookMade.current = true;
       setStorybookLoading(true);
-      const s = session.current;
-      const body = bookFromSession({ title: s.title, genre: s.genre, lines: lines.current, scenes: scenesSeen(), words: [] });
       try {
-        const res = await fetch("/api/storybook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        const made = (await res.json()) as StorybookResult;
-        setStorybook({ ...made, url: new URL(made.url, window.location.origin).href });
+        await makeBook();
       } finally {
         setStorybookLoading(false);
       }
     }
     void finishSession();
-  }, [clearAll, finishSession, scenesSeen]);
+  }, [clearAll, finishSession, makeBook]);
 
   const start = useCallback(
-    async ({ genre, settings, returningCharacters, learningLanguage = "off", recentTitles = [] }: StartOptions) => {
+    async ({ genre, settings, returningCharacters, learningLanguage = "off" }: StartOptions) => {
       clearAll();
       live.current = true;
       setTranscript([]);
       lines.current = [];
       setStorybook(null);
-      const title = makeSpark(genre, recentTitles).title;
+      const title = DEMO_TITLE;
+      // Unlock audio inside the tap that started the story (iPhones need this).
+      player.current ??= new Audio();
+      player.current.src = `${BASE_PATH}/demo/${DEMO_BIRBAL[0].file}`;
+      void player.current.play().then(() => player.current?.pause()).catch(() => {});
       session.current = { genre, startedAt: Date.now(), title, puzzles: 0, words: 0, reported: false };
       bookMade.current = false;
       director.reset(GENRE_INFO[genre].label);
@@ -190,7 +215,8 @@ export function useVoiceAgent(): VoiceAgent {
           later(at, () => {
             if (step.scene) director.fromAgent(step.scene);
             setStatus("speaking");
-            say("birbal", i === 0 ? `${pickOpening(GENRE_INFO[genre].label, title)} ${step.birbal}` : step.birbal);
+            say("birbal", i === 0 ? `${DEMO_OPENER} ${step.birbal}` : step.birbal);
+            if (DEMO_BIRBAL[i]) play(DEMO_BIRBAL[i].file);
           });
           // One new word in each of the first four scenes.
           const w = words[i];
@@ -203,31 +229,37 @@ export function useVoiceAgent(): VoiceAgent {
             });
             later(at + 1500 + WORD_MS, () => setCurrentWord((c) => (c === word ? null : c)));
           }
-          at += SPEAK_MS;
+          at += (DEMO_BIRBAL[i]?.ms ?? SPEAK_MS) + 400;
           if (i === SCRIPT.length - 1) {
             later(at, () => {
               setStatus("listening");
               setStorybookLoading(true);
             });
-            later(at + 3000, () => {
-              setStorybookLoading(false);
+            later(at + 1500, async () => {
               bookMade.current = true;
               session.current.title = title;
               session.current.puzzles = 1;
-              setStorybook({ url: "https://example.com/birbal-storybook", title });
+              try {
+                await makeBook();
+              } finally {
+                setStorybookLoading(false);
+              }
               void stop();
             });
             return;
           }
           later(at, () => setStatus("listening"));
-          later(at + LISTEN_MS / 2, () => say("child", step.child));
-          at += LISTEN_MS;
+          later(at + 700, () => {
+            say("child", step.child);
+            if (DEMO_CHILD[i]) play(DEMO_CHILD[i].file);
+          });
+          at += Math.max(LISTEN_MS, (DEMO_CHILD[i]?.ms ?? 0) + 1500);
         });
       });
     },
     // `later`/`say` only touch refs and setters
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [clearAll, stop],
+    [clearAll, stop, makeBook],
   );
 
   // Fake output volume while "speaking".
