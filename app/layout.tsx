@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={fredoka.variable}>
       <body className="font-sans antialiased">
         <p className="pointer-events-none fixed inset-x-0 z-40 text-center text-xs font-medium text-ink/60" style={{ top: "max(2px, env(safe-area-inset-top))" }}>
-          *demo version
+          {process.env.NEXT_PUBLIC_MOCK_AGENT === "1" ? "*demo version · not connected to ElevenLabs" : "*demo version"}
         </p>
         {children}
       </body>
